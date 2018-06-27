@@ -15,7 +15,6 @@ mkdir -p ${kv_vol_dir}
 #copy
 cp /bin/kv ${kv_vol_dir}/kv
 cp /bin/azurekeyvault-flexvolume ${kv_vol_dir}/azurekeyvault-flexvolume #script
-cp /usr/bin/jq ${kv_vol_dir}/jq
 
 
 #https://github.com/kubernetes/kubernetes/issues/17182

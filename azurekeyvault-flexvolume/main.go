@@ -21,7 +21,7 @@ import (
 
 const (
 	program					= "azurekeyvault-flexvolume"
-	version     			= "0.0.1"
+	version					= "0.0.1"
 	permission  os.FileMode = 0644
 	cache					= 60
 )
@@ -74,8 +74,8 @@ func main() {
 
 	fileInfo, err := os.Lstat(path.Join(options.dir, options.secretName + ".txt"))
 	if fileInfo != nil && err == nil {
-		glog.V(0).Infof("secret %s already exists in %s", options.secretName,options.dir)
-		content, err = ioutil.ReadFile(path.Join(options.dir, options.secretName))
+		glog.V(0).Infof("secret %s already exists in %s", options.secretName, options.dir)
+		content, err = ioutil.ReadFile(path.Join(options.dir, options.secretName + ".txt"))
 		if err != nil {
 			showError("failed to read content from file, error: %s", err)
 		}

@@ -2,7 +2,7 @@ FROM alpine:3.6
 
 WORKDIR /bin
 
-RUN apk add --no-cache bash jq 
+RUN apk add --no-cache bash
 ADD ./kv /bin/kv
 ADD ./azurekeyvault-flexvolume /bin/azurekeyvault-flexvolume
 RUN chmod a+x /bin/kv

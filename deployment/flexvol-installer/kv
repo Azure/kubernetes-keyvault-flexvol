@@ -3,7 +3,8 @@
 DIR=$(dirname "$(readlink -f "$0")")
 JQ="/usr/bin/jq"
 LOG="/var/log/kv-driver.log"
-VER="0.0.3"
+VER="0.0.2"
+KVFV="${DIR}/azurekeyvault-flexvolume"
 
 usage() {
 	err "Invalid usage. Usage: "
@@ -14,11 +15,23 @@ usage() {
 }
 
 err() {
+	echo `date` "ERROR:" $* >> $LOG
 	echo $* 1>&2
 }
 
 log() {
+	echo `date` "INFO:" $* >> $LOG
 	echo $* >&1
+}
+ismounted() {
+    count=`sudo ls ${MNTPATH} | wc -l`
+	if [ $count -gt 0 ] ; then
+		echo "`date` ismounted | ${MNTPATH} exists" >>$LOG
+		echo "1"
+	else
+		echo "`date` ismounted | ${MNTPATH} does not exist" >>$LOG
+		echo "0"
+	fi
 }
 
 mount() {
@@ -45,6 +58,11 @@ mount() {
 	USE_INTEGRATED_ID="$(echo "$2"|"$JQ" -r '.useintegratedid //empty')"
 	ALIAS="$(echo "$2"|"$JQ" -r '.alias //empty')"
 	
+	if [ $(ismounted) -eq 1 ] ; then
+		log "{\"status\": \"Success\"}"
+		exit 0
+	fi
+
 	echo "`date` CLIENTID: ${CLIENTID}" >>$LOG
 
 	read_only_param=""
@@ -52,21 +70,24 @@ mount() {
 		read_only_param="--read-only"
 	fi
 
-	echo "`date` EXEC: mkdir -p ${MNTPATH}" >> $LOG
-	mkdir -p ${MNTPATH} >>$LOG 2>&1
-
-	echo "`date` EXEC: /etc/kubernetes/volumeplugins/azure~kv/azurekeyvault-flexvolume -logtostderr=1 -vaultName=${KEYVAULT_NAME} -secretName=${KEYVAULT_OBJECT_NAME} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH}/${KEYVAULT_OBJECT_NAME}.txt -subscriptionId=${SUBSCRIPTION_ID} -cloudName="" -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID}" >> $LOG
-	/etc/kubernetes/volumeplugins/azure~kv/azurekeyvault-flexvolume -logtostderr=1 -vaultName=${KEYVAULT_NAME} -secretName=${KEYVAULT_OBJECT_NAME} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName="" -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} >>$LOG 2>&1
+	echo "`date` EXEC: $KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -secretName=${KEYVAULT_OBJECT_NAME} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName="" -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID}" >> $LOG
+	$KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -secretName=${KEYVAULT_OBJECT_NAME} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName="" -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} >>$LOG 2>&1
 	
 	echo "`date` EXEC: ls ${MNTPATH}" >> $LOG
-
-	errorLog=`tail -n 1 "${LOG}"`
-	log "{\"status\": \"Success\",\"message\":\"log:${errorLog}\" }"
+	ls ${MNTPATH} >>$LOG 2>&1
+	log "{\"status\": \"Success\"}"
 	exit 0
 }
 
 unmount() {
 	MNTPATH="$1"
+
+	if [ $(ismounted) -eq 0 ] ; then
+		log "{\"status\": \"Success\"}"
+		exit 0
+	fi
+	echo "`date` unmount ${MNTPATH}" >> $LOG
+	rm -rf ${MNTPATH} >>$LOG 2>&1
 
 	log '{"status": "Success"}'
 	exit 0
