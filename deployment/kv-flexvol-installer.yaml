@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kv
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  labels:
+    kvComponent: kernel-flexvol-installer
+  name: kv-flexvol-installer
+  namespace: kv
+spec:
+  template:
+    metadata:
+      labels:
+        kvComponent: kv-kubernetes-installer
+    spec:
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
+      containers:
+        # * if you have used flex before on your cluster, use same directory
+        # set TARGET_DIR env var and mount the same directory to to the container
+      - name: flexvol-driver-installer
+        image: "ritazh/kv-flexvol-installer"
+        imagePullPolicy: Always
+        env:
+        #forces the container not to exit 
+        # to solve for this https://github.com/kubernetes/kubernetes/issues/17182
+        # until it is fixed
+        - name: TARGET_DIR
+          value: "/etc/kubernetes/volumeplugins"
+        volumeMounts:
+        - mountPath: "/etc/kubernetes/volumeplugins"
+          name: volplugins
+      volumes:
+      - hostPath:
+          path: "/etc/kubernetes/volumeplugins" #Modify this directory if your nodes are using a different one
+        name: volplugins
+      nodeSelector:
+        beta.kubernetes.io/os: linux
