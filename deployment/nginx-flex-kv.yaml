@@ -9,20 +9,18 @@ spec:
     volumeMounts:
     - name: test
       mountPath: /kvmnt
+      readOnly: true
   volumes:
   - name: test
     flexVolume:
       driver: "azure/kv"
-      readOnly: false
-      fsType: ext4
       secretRef:
         name: kvcreds
       options:
-        region: ""
-        cloudname: ""
+        useintegratedid: "false"
         keyvaultname: ""
         keyvaultobjectname: ""
-        keyvaultobjecttype: ""
+        keyvaultobjecttype: "secret"
         resourcegroup: ""
         subscriptionid: ""
         tenantid: ""
