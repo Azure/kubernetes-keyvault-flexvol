@@ -17,10 +17,6 @@ spec:
         kvComponent: kv-kubernetes-installer
     spec:
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Equal
-        value: "true"
-        effect: NoSchedule
       containers:
         # * if you have used flex before on your cluster, use same directory
         # set TARGET_DIR env var and mount the same directory to to the container

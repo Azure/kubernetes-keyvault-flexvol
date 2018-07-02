@@ -39,23 +39,18 @@ mount() {
 
 	CLIENTID="$(echo "$2"|"$JQ" -r '.["kubernetes.io/secret/clientid"] // empty' | base64 -d)"
 	CLIENTSECRET="$(echo "$2"|"$JQ" -r '.["kubernetes.io/secret/clientsecret"] // empty' | tr -d '\n' | tr -d ' ' | base64 -d)"
-	TENANT="$(echo "$2"|"$JQ" -r '.["kubernetes.io/secret/tenant"] // empty' | tr -d '\n' | tr -d ' ' | base64 -d)"
-	
-	FS_TYPE="$(echo "$2"|"$JQ" -r '.["kubernetes.io/fsType"] //empty')"
-	READ_WRITE="$(echo "$2"|"$JQ" -r '.["kubernetes.io/readwrite"] //empty')"
 	# Required
-	REGION="$(echo "$2"|"$JQ" -r '.region //empty')"
-	CLOUD_NAME="$(echo "$2"|"$JQ" -r '.cloudname //empty')"
 	RESOURCE_GROUP="$(echo "$2"|"$JQ" -r '.resourcegroup //empty')"
 	SUBSCRIPTION_ID="$(echo "$2"|"$JQ" -r '.subscriptionid //empty')"
 	TENANT_ID="$(echo "$2"|"$JQ" -r '.tenantid //empty')"
-
 	KEYVAULT_NAME="$(echo "$2"|"$JQ" -r '.keyvaultname //empty')"
 	KEYVAULT_OBJECT_NAME="$(echo "$2"|"$JQ" -r '.keyvaultobjectname //empty')"
 	KEYVAULT_OBJECT_TYPE="$(echo "$2"|"$JQ" -r '.keyvaultobjecttype //empty')"
-	# Optional
-	KEYVAULT_OBJECT_VERSION="$(echo "$2"|"$JQ" -r '.keyvaultobjectversion //empty')"
 	USE_INTEGRATED_ID="$(echo "$2"|"$JQ" -r '.useintegratedid //empty')"
+
+	# Optional
+	CLOUD_NAME="$(echo "$2"|"$JQ" -r '.cloudname //empty')"
+	KEYVAULT_OBJECT_VERSION="$(echo "$2"|"$JQ" -r '.keyvaultobjectversion //empty')"
 	ALIAS="$(echo "$2"|"$JQ" -r '.alias //empty')"
 	
 	if [ $(ismounted) -eq 1 ] ; then
@@ -63,15 +58,63 @@ mount() {
 		exit 0
 	fi
 
-	echo "`date` CLIENTID: ${CLIENTID}" >>$LOG
-
-	read_only_param=""
-	if [ $READ_WRITE = "ro" ]; then
-		read_only_param="--read-only"
+	# validate
+	if [ -z "${RESOURCE_GROUP}" ]; then
+		err "{\"status\": \"Failure\", \"message\": \"validation failed, resourcegroup is empty\"}"
+		exit 1
 	fi
 
-	echo "`date` EXEC: $KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -secretName=${KEYVAULT_OBJECT_NAME} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName="" -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID}" >> $LOG
-	$KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -secretName=${KEYVAULT_OBJECT_NAME} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName="" -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} >>$LOG 2>&1
+	if [ -z "${SUBSCRIPTION_ID}" ]; then
+		err "{\"status\": \"Failure\", \"message\": \"validation failed, subscriptionid is empty\"}"
+		exit 1
+	fi
+
+	if [ -z "${TENANT_ID}" ]; then
+		err "{\"status\": \"Failure\", \"message\": \"validation failed, tenantid is empty\"}"
+		exit 1
+	fi
+
+	if [ -z "${KEYVAULT_NAME}" ]; then
+		err "{\"status\": \"Failure\", \"message\": \"validation failed, keyvaultname is empty\"}"
+		exit 1
+	fi
+
+	if [ -z "${KEYVAULT_OBJECT_NAME}" ]; then
+		err "{\"status\": \"Failure\", \"message\": \"validation failed, keyvaultobjectname is empty\"}"
+		exit 1
+	fi
+
+	if [ -z "${KEYVAULT_OBJECT_TYPE}" ]; then
+		err "{\"status\": \"Failure\", \"message\": \"validation failed, keyvaultobjecttype is empty\"}"
+		exit 1
+	fi
+
+	if [ -z "${USE_INTEGRATED_ID}" ]; then
+		err "{\"status\": \"Failure\", \"message\": \"validation failed, useintegratedid is empty\"}"
+		exit 1
+	fi
+
+	if [ "${USE_INTEGRATED_ID}" = false ]; then
+		if [ -z "${CLIENTID}" ]; then
+			err "{\"status\": \"Failure\", \"message\": \"validation failed, secret/clientid is empty\"}"
+			exit 1
+		fi
+
+		if [ -z "${CLIENTSECRET}" ]; then
+			err "{\"status\": \"Failure\", \"message\": \"validation failed, secret/clientsecret is empty\"}"
+			exit 1
+		fi
+
+		echo "`date` CLIENTID: ${CLIENTID}" >>$LOG
+	fi
+	# set default
+	if [ -z "${CLOUD_NAME}" ]; then
+		CLOUD_NAME=""
+	fi
+	
+
+	echo "`date` EXEC: $KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -secretName=${KEYVAULT_OBJECT_NAME} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID}" >> $LOG
+	$KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -secretName=${KEYVAULT_OBJECT_NAME} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} >>$LOG 2>&1
 	
 	echo "`date` EXEC: ls ${MNTPATH}" >> $LOG
 	ls ${MNTPATH} >>$LOG 2>&1
