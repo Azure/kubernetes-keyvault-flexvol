@@ -44,8 +44,8 @@ type AzureAuthConfig struct {
 	AADClientCertPath string `json:"aadClientCertPath"`
 	// The password of the client certificate for an AAD application with RBAC access to talk to Azure RM APIs
 	AADClientCertPassword string `json:"aadClientCertPassword"`
-	// Use managed service identity for the virtual machine to access Azure ARM APIs
-	UseManagedIdentityExtension bool `json:"useManagedIdentityExtension"`
+	// Use managed service identity integrated with pod identity to get access to Azure ARM resources
+	UseIntegratedIdentity bool `json:"useIntegratedIdentity"`
 	// The ID of the Azure Subscription that the cluster is deployed in
 	SubscriptionID string `json:"subscriptionId"`
 }
@@ -68,7 +68,7 @@ func AuthGrantType() OAuthGrantType {
 	return OAuthGrantTypeServicePrincipal
 }
 
-func GetManagementToken(grantType OAuthGrantType, cloudName string, tenantId string, useManagedIdentityExtension bool, aADClientSecret string, aADClientID string) (authorizer autorest.Authorizer, err error) {
+func GetManagementToken(grantType OAuthGrantType, cloudName string, tenantId string, useIntegratedIdentity bool, aADClientSecret string, aADClientID string) (authorizer autorest.Authorizer, err error) {
 	
 	env, err := ParseAzureEnvironment(cloudName)
 	if err != nil {
@@ -76,7 +76,7 @@ func GetManagementToken(grantType OAuthGrantType, cloudName string, tenantId str
 	}
 
 	rmEndPoint := env.ResourceManagerEndpoint
-	servicePrincipalToken, err := GetServicePrincipalToken(tenantId, env, rmEndPoint, useManagedIdentityExtension, aADClientSecret, aADClientID)
+	servicePrincipalToken, err := GetServicePrincipalToken(tenantId, env, rmEndPoint, useIntegratedIdentity, aADClientSecret, aADClientID)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func GetManagementToken(grantType OAuthGrantType, cloudName string, tenantId str
 
 }
 
-func GetKeyvaultToken(grantType OAuthGrantType, cloudName string, tenantId string, useManagedIdentityExtension bool, aADClientSecret string, aADClientID string) (authorizer autorest.Authorizer, err error) {
+func GetKeyvaultToken(grantType OAuthGrantType, cloudName string, tenantId string, useIntegratedIdentity bool, aADClientSecret string, aADClientID string) (authorizer autorest.Authorizer, err error) {
 	
 	env, err := ParseAzureEnvironment(cloudName)
 	if err != nil {
@@ -96,7 +96,7 @@ func GetKeyvaultToken(grantType OAuthGrantType, cloudName string, tenantId strin
 	if '/' == kvEndPoint[len(kvEndPoint)-1] {
 		kvEndPoint = kvEndPoint[:len(kvEndPoint)-1]
 	}
-	servicePrincipalToken, err := GetServicePrincipalToken(tenantId, env, kvEndPoint, useManagedIdentityExtension, aADClientSecret, aADClientID)
+	servicePrincipalToken, err := GetServicePrincipalToken(tenantId, env, kvEndPoint, useIntegratedIdentity, aADClientSecret, aADClientID)
 	if err != nil {
 		return nil, err
 	}
@@ -107,14 +107,16 @@ func GetKeyvaultToken(grantType OAuthGrantType, cloudName string, tenantId strin
 }
 
 // GetServicePrincipalToken creates a new service principal token based on the configuration
-func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource string, useManagedIdentityExtension bool, aADClientSecret string, aADClientID string) (*adal.ServicePrincipalToken, error) {
+func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource string, useIntegratedIdentity bool, aADClientSecret string, aADClientID string) (*adal.ServicePrincipalToken, error) {
 	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, tenantId)
 	if err != nil {
 		return nil, fmt.Errorf("creating the OAuth config: %v", err)
 	}
 
-	if useManagedIdentityExtension {
+	if useIntegratedIdentity {
 		glog.V(2).Infoln("azure: using managed identity extension to retrieve access token")
+
+		///TODO: Need to update this to call nmi endpoint instead
 		msiEndpoint, err := adal.GetMSIVMEndpoint()
 		if err != nil {
 			return nil, fmt.Errorf("Getting the managed service identity endpoint: %v", err)
