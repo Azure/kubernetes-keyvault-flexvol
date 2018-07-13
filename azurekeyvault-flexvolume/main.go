@@ -95,7 +95,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	token, err := GetKeyvaultToken(AuthGrantType(), options.cloudName, options.tenantId, options.useIntegratedIdentity, options.aADClientSecret, options.aADClientID)
+	token, err := GetKeyvaultToken(AuthGrantType(), options.cloudName, options.tenantId, options.useIntegratedIdentity, options.aADClientSecret, options.aADClientID, options.podName, options.podNamespace)
 	if err != nil {
 		showError("failed to get keyvault token, error: %s", err)
 		fmt.Printf("\n failed to get keyvault token \n")
@@ -203,7 +203,7 @@ func getVault(ctx context.Context, subscriptionID string, vaultName string, reso
 	glog.Infof("resourceGroup: %s", resourceGroup)
 
 	vaultsClient := kvmgmt.NewVaultsClient(subscriptionID)
-	token, _ := GetManagementToken(AuthGrantType(), options.cloudName, options.tenantId, options.useIntegratedIdentity, options.aADClientSecret, options.aADClientID)
+	token, _ := GetManagementToken(AuthGrantType(), options.cloudName, options.tenantId, options.useIntegratedIdentity, options.aADClientSecret, options.aADClientID, options.podName, options.podNamespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get management token, error: %v", err)
 	}

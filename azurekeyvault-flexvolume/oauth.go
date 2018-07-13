@@ -7,6 +7,10 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+	"io/ioutil"
+	"encoding/json"
+
 	"github.com/golang/glog"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/adal"
@@ -14,6 +18,9 @@ import (
 )
 
 const (
+	nmiendpoint         = "http://localhost:2579/host/token/"
+	podnameheader       = "podname"
+	podnsheader         = "podns"
 )
 
 var (
@@ -68,7 +75,12 @@ func AuthGrantType() OAuthGrantType {
 	return OAuthGrantTypeServicePrincipal
 }
 
-func GetManagementToken(grantType OAuthGrantType, cloudName string, tenantId string, useIntegratedIdentity bool, aADClientSecret string, aADClientID string) (authorizer autorest.Authorizer, err error) {
+type NMIResponse struct {
+    Token adal.Token `json:"token"`
+    ClientID string `json:"clientid"`
+}
+
+func GetManagementToken(grantType OAuthGrantType, cloudName string, tenantId string, useIntegratedIdentity bool, aADClientSecret string, aADClientID string, podname string, podns string) (authorizer autorest.Authorizer, err error) {
 	
 	env, err := ParseAzureEnvironment(cloudName)
 	if err != nil {
@@ -76,7 +88,7 @@ func GetManagementToken(grantType OAuthGrantType, cloudName string, tenantId str
 	}
 
 	rmEndPoint := env.ResourceManagerEndpoint
-	servicePrincipalToken, err := GetServicePrincipalToken(tenantId, env, rmEndPoint, useIntegratedIdentity, aADClientSecret, aADClientID)
+	servicePrincipalToken, err := GetServicePrincipalToken(tenantId, env, rmEndPoint, useIntegratedIdentity, aADClientSecret, aADClientID, podname, podns)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +97,7 @@ func GetManagementToken(grantType OAuthGrantType, cloudName string, tenantId str
 
 }
 
-func GetKeyvaultToken(grantType OAuthGrantType, cloudName string, tenantId string, useIntegratedIdentity bool, aADClientSecret string, aADClientID string) (authorizer autorest.Authorizer, err error) {
+func GetKeyvaultToken(grantType OAuthGrantType, cloudName string, tenantId string, useIntegratedIdentity bool, aADClientSecret string, aADClientID string, podname string, podns string) (authorizer autorest.Authorizer, err error) {
 	
 	env, err := ParseAzureEnvironment(cloudName)
 	if err != nil {
@@ -96,7 +108,7 @@ func GetKeyvaultToken(grantType OAuthGrantType, cloudName string, tenantId strin
 	if '/' == kvEndPoint[len(kvEndPoint)-1] {
 		kvEndPoint = kvEndPoint[:len(kvEndPoint)-1]
 	}
-	servicePrincipalToken, err := GetServicePrincipalToken(tenantId, env, kvEndPoint, useIntegratedIdentity, aADClientSecret, aADClientID)
+	servicePrincipalToken, err := GetServicePrincipalToken(tenantId, env, kvEndPoint, useIntegratedIdentity, aADClientSecret, aADClientID, podname, podns)
 	if err != nil {
 		return nil, err
 	}
@@ -107,23 +119,59 @@ func GetKeyvaultToken(grantType OAuthGrantType, cloudName string, tenantId strin
 }
 
 // GetServicePrincipalToken creates a new service principal token based on the configuration
-func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource string, useIntegratedIdentity bool, aADClientSecret string, aADClientID string) (*adal.ServicePrincipalToken, error) {
+func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource string, useIntegratedIdentity bool, aADClientSecret string, aADClientID string, podname string, podns string) (*adal.ServicePrincipalToken, error) {
 	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, tenantId)
 	if err != nil {
 		return nil, fmt.Errorf("creating the OAuth config: %v", err)
 	}
 
 	if useIntegratedIdentity {
-		glog.V(2).Infoln("azure: using managed identity extension to retrieve access token")
-
-		///TODO: Need to update this to call nmi endpoint instead
-		msiEndpoint, err := adal.GetMSIVMEndpoint()
+		glog.V(0).Infoln("azure: using managed identity extension to retrieve access token")
+		
+		endpoint := fmt.Sprintf("%s?resource=%s", nmiendpoint, resource)
+		client := &http.Client{}
+		req, err := http.NewRequest("GET", endpoint, nil)
 		if err != nil {
-			return nil, fmt.Errorf("Getting the managed service identity endpoint: %v", err)
+			return nil, err
 		}
-		return adal.NewServicePrincipalTokenFromMSI(
-			msiEndpoint,
-			resource)
+		req.Header.Add(podnsheader, podns)
+		req.Header.Add(podnameheader, podname)
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusOK {
+			bodyBytes, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+			var nmiResp = new(NMIResponse)
+			err = json.Unmarshal(bodyBytes, &nmiResp)
+			if err != nil {
+				return nil, err
+			}
+			///TODO: remove verbose logging
+			fmt.Printf("\n accesstoken: %s\n", nmiResp.Token.AccessToken)
+			fmt.Printf("\n clientid: %s\n", nmiResp.ClientID)
+
+			token := nmiResp.Token
+			clientID := nmiResp.ClientID
+
+			if &token == nil || clientID == "" {
+				return nil, fmt.Errorf("nmi did not return expected values in response: token and clientid")
+			}
+		
+			spt, err := adal.NewServicePrincipalTokenFromManualToken(*oauthConfig, clientID, resource, token, nil)
+			if err != nil {
+				return nil, err
+			}
+			return spt, nil
+		}
+		
+		err = fmt.Errorf("nmi response failed with status code: %d", resp.StatusCode)
+		return nil, err
 	}
 
 	if len(aADClientSecret) > 0 {
