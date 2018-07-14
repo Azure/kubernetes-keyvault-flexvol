@@ -42,7 +42,7 @@ type Option struct {
 	showVersion bool
 	cloudName string
 	tenantId string 
-	useIntegratedIdentity bool
+	usePodIdentity bool
 	aADClientSecret string
 	aADClientID string
 	podName string
@@ -95,7 +95,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	token, err := GetKeyvaultToken(AuthGrantType(), options.cloudName, options.tenantId, options.useIntegratedIdentity, options.aADClientSecret, options.aADClientID, options.podName, options.podNamespace)
+	token, err := GetKeyvaultToken(AuthGrantType(), options.cloudName, options.tenantId, options.usePodIdentity, options.aADClientSecret, options.aADClientID, options.podName, options.podNamespace)
 	if err != nil {
 		showError("failed to get keyvault token, error: %s", err)
 		fmt.Printf("\n failed to get keyvault token \n")
@@ -133,7 +133,7 @@ func parseConfigs() error {
 	flag.StringVar(&options.aADClientSecret, "aADClientSecret", "", "aADClientSecret to Azure.")
 	flag.StringVar(&options.cloudName, "cloudName", "", "Type of Azure cloud")
 	flag.StringVar(&options.tenantId, "tenantId", "", "tenantId to Azure")
-	flag.BoolVar(&options.useIntegratedIdentity, "useIntegratedIdentity", false, "useIntegratedIdentity for using pod identity.")
+	flag.BoolVar(&options.usePodIdentity, "usePodIdentity", false, "usePodIdentity for using pod identity.")
 	flag.StringVar(&options.dir, "dir", "", "Directory path to write data.")
 	flag.BoolVar(&options.showVersion, "version", true, "Show version.")
 	flag.StringVar(&options.podName, "podName", "", "Name of the pod")
@@ -158,7 +158,7 @@ func parseConfigs() error {
 		return fmt.Errorf("-dir is not set")
 	}
 
-	if options.useIntegratedIdentity == false {
+	if options.usePodIdentity == false {
 		if options.aADClientID == "" {
 			return fmt.Errorf("-aADClientID is not set")
 		}
@@ -203,7 +203,7 @@ func getVault(ctx context.Context, subscriptionID string, vaultName string, reso
 	glog.Infof("resourceGroup: %s", resourceGroup)
 
 	vaultsClient := kvmgmt.NewVaultsClient(subscriptionID)
-	token, _ := GetManagementToken(AuthGrantType(), options.cloudName, options.tenantId, options.useIntegratedIdentity, options.aADClientSecret, options.aADClientID, options.podName, options.podNamespace)
+	token, _ := GetManagementToken(AuthGrantType(), options.cloudName, options.tenantId, options.usePodIdentity, options.aADClientSecret, options.aADClientID, options.podName, options.podNamespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get management token, error: %v", err)
 	}

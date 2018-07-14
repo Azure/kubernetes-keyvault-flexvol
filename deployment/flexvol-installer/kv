@@ -50,7 +50,7 @@ mount() {
 	KEYVAULT_NAME="$(echo "$2"|"$JQ" -r '.keyvaultname //empty')"
 	KEYVAULT_OBJECT_NAME="$(echo "$2"|"$JQ" -r '.keyvaultobjectname //empty')"
 	KEYVAULT_OBJECT_TYPE="$(echo "$2"|"$JQ" -r '.keyvaultobjecttype //empty')"
-	USE_INTEGRATED_ID="$(echo "$2"|"$JQ" -r '.useintegratedid //empty')"
+	USE_POD_IDENTITY="$(echo "$2"|"$JQ" -r '.usepodidentity //empty')"
 
 	# Optional
 	CLOUD_NAME="$(echo "$2"|"$JQ" -r '.cloudname //empty')"
@@ -93,12 +93,12 @@ mount() {
 		exit 1
 	fi
 
-	if [ -z "${USE_INTEGRATED_ID}" ]; then
-		err "{\"status\": \"Failure\", \"message\": \"validation failed, useintegratedid is empty\"}"
+	if [ -z "${USE_POD_IDENTITY}" ]; then
+		err "{\"status\": \"Failure\", \"message\": \"validation failed, usepodidentity is empty\"}"
 		exit 1
 	fi
 
-	if [ "${USE_INTEGRATED_ID}" = false ]; then
+	if [ "${USE_POD_IDENTITY}" = false ]; then
 		if [ -z "${CLIENTID}" ]; then
 			err "{\"status\": \"Failure\", \"message\": \"validation failed, secret/clientid is empty\"}"
 			exit 1
@@ -130,8 +130,8 @@ mount() {
 	fi
 	
 
-	echo "`date` EXEC: $KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectName=${KEYVAULT_OBJECT_NAME} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} -useIntegratedIdentity=${USE_INTEGRATED_ID} -podNamespace=${PODNAMESPACE} -podName=${PODNAME}" >> $LOG
-	$KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectName=${KEYVAULT_OBJECT_NAME} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} -useIntegratedIdentity=${USE_INTEGRATED_ID} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} >>$LOG 2>&1
+	echo "`date` EXEC: $KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectName=${KEYVAULT_OBJECT_NAME} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME}" >> $LOG
+	$KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectName=${KEYVAULT_OBJECT_NAME} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} >>$LOG 2>&1
 	
 	if [ $? -ne 0 ] ; then
 		errorLog=`tail -n 1 "${LOG}"`

@@ -52,7 +52,7 @@ type AzureAuthConfig struct {
 	// The password of the client certificate for an AAD application with RBAC access to talk to Azure RM APIs
 	AADClientCertPassword string `json:"aadClientCertPassword"`
 	// Use managed service identity integrated with pod identity to get access to Azure ARM resources
-	UseIntegratedIdentity bool `json:"useIntegratedIdentity"`
+	UsePodIdentity bool `json:"usePodIdentity"`
 	// The ID of the Azure Subscription that the cluster is deployed in
 	SubscriptionID string `json:"subscriptionId"`
 }
@@ -80,7 +80,7 @@ type NMIResponse struct {
     ClientID string `json:"clientid"`
 }
 
-func GetManagementToken(grantType OAuthGrantType, cloudName string, tenantId string, useIntegratedIdentity bool, aADClientSecret string, aADClientID string, podname string, podns string) (authorizer autorest.Authorizer, err error) {
+func GetManagementToken(grantType OAuthGrantType, cloudName string, tenantId string, usePodIdentity bool, aADClientSecret string, aADClientID string, podname string, podns string) (authorizer autorest.Authorizer, err error) {
 	
 	env, err := ParseAzureEnvironment(cloudName)
 	if err != nil {
@@ -88,7 +88,7 @@ func GetManagementToken(grantType OAuthGrantType, cloudName string, tenantId str
 	}
 
 	rmEndPoint := env.ResourceManagerEndpoint
-	servicePrincipalToken, err := GetServicePrincipalToken(tenantId, env, rmEndPoint, useIntegratedIdentity, aADClientSecret, aADClientID, podname, podns)
+	servicePrincipalToken, err := GetServicePrincipalToken(tenantId, env, rmEndPoint, usePodIdentity, aADClientSecret, aADClientID, podname, podns)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func GetManagementToken(grantType OAuthGrantType, cloudName string, tenantId str
 
 }
 
-func GetKeyvaultToken(grantType OAuthGrantType, cloudName string, tenantId string, useIntegratedIdentity bool, aADClientSecret string, aADClientID string, podname string, podns string) (authorizer autorest.Authorizer, err error) {
+func GetKeyvaultToken(grantType OAuthGrantType, cloudName string, tenantId string, usePodIdentity bool, aADClientSecret string, aADClientID string, podname string, podns string) (authorizer autorest.Authorizer, err error) {
 	
 	env, err := ParseAzureEnvironment(cloudName)
 	if err != nil {
@@ -108,7 +108,7 @@ func GetKeyvaultToken(grantType OAuthGrantType, cloudName string, tenantId strin
 	if '/' == kvEndPoint[len(kvEndPoint)-1] {
 		kvEndPoint = kvEndPoint[:len(kvEndPoint)-1]
 	}
-	servicePrincipalToken, err := GetServicePrincipalToken(tenantId, env, kvEndPoint, useIntegratedIdentity, aADClientSecret, aADClientID, podname, podns)
+	servicePrincipalToken, err := GetServicePrincipalToken(tenantId, env, kvEndPoint, usePodIdentity, aADClientSecret, aADClientID, podname, podns)
 	if err != nil {
 		return nil, err
 	}
@@ -119,14 +119,19 @@ func GetKeyvaultToken(grantType OAuthGrantType, cloudName string, tenantId strin
 }
 
 // GetServicePrincipalToken creates a new service principal token based on the configuration
-func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource string, useIntegratedIdentity bool, aADClientSecret string, aADClientID string, podname string, podns string) (*adal.ServicePrincipalToken, error) {
+func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource string, usePodIdentity bool, aADClientSecret string, aADClientID string, podname string, podns string) (*adal.ServicePrincipalToken, error) {
 	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, tenantId)
 	if err != nil {
 		return nil, fmt.Errorf("creating the OAuth config: %v", err)
 	}
 
-	if useIntegratedIdentity {
-		glog.V(0).Infoln("azure: using managed identity extension to retrieve access token")
+	// For usepodidentity mode, the flexvolume driver makes an authorization request to fetch token for a resource from the NMI host endpoint (http://127.0.0.1:2579/host/token/). 
+	// The request includes the pod namespace `podns` and the pod name `podname` in the request header and the resource endpoint of the resource requesting the token. 
+	// The NMI server identifies the pod based on the `podns` and `podname` in the request header and then queries k8s (through MIC) for a matching azure identity.  
+	// Then nmi makes an adal request to get a token for the resource in the request, returns the `token` and the `clientid` as a reponse to the flexvolume request.
+
+	if usePodIdentity {
+		glog.V(0).Infoln("azure: using pod identity to retrieve token")
 		
 		endpoint := fmt.Sprintf("%s?resource=%s", nmiendpoint, resource)
 		client := &http.Client{}
@@ -173,7 +178,7 @@ func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource 
 		err = fmt.Errorf("nmi response failed with status code: %d", resp.StatusCode)
 		return nil, err
 	}
-
+	// When flexvolume driver is using a Service Principal clientid + client secret to retrieve token for resource
 	if len(aADClientSecret) > 0 {
 		glog.V(2).Infoln("azure: using client_id+client_secret to retrieve access token")
 		return adal.NewServicePrincipalToken(

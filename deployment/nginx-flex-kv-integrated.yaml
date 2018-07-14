@@ -18,7 +18,7 @@ spec:
     flexVolume:
       driver: "azure/kv"
       options:
-        useintegratedid: "true"
+        usePodIdentity: "true"
         keyvaultname: ""
         keyvaultobjectname: ""
         keyvaultobjecttype: secret
