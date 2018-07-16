@@ -32,6 +32,8 @@ type Option struct {
 	vaultName string
 	// the name of the Azure Key Vault object
 	vaultObjectName string
+	// the version of the Azure Key Vault object
+	vaultObjectVersion string
 	// the resourcegroup of the Azure Key Vault
 	resourceGroup string
 	// directory to save data
@@ -104,7 +106,7 @@ func main() {
 	
 	kvClient.Authorizer = token
 
-	secret, err := kvClient.GetSecret(ctx, *vaultUrl, options.vaultObjectName, "")
+	secret, err := kvClient.GetSecret(ctx, *vaultUrl, options.vaultObjectName, options.vaultObjectVersion)
 	if err != nil {
 		showError("failed to get secret, error: %s", err)
 		fmt.Printf("\n failed to get secret \n")
@@ -127,6 +129,7 @@ func main() {
 func parseConfigs() error {
 	flag.StringVar(&options.vaultName, "vaultName", "", "Name of Azure Key Vault instance.")
 	flag.StringVar(&options.vaultObjectName, "vaultObjectName", "", "Name of Azure Key Vault object.")
+	flag.StringVar(&options.vaultObjectVersion, "vaultObjectVersion", "", "Version of Azure Key Vault object.")
 	flag.StringVar(&options.resourceGroup, "resourceGroup", "", "Resource group name of Azure Key Vault.")
 	flag.StringVar(&options.subscriptionId, "subscriptionId", "", "subscriptionId to Azure.")
 	flag.StringVar(&options.aADClientID, "aADClientID", "", "aADClientID to Azure.")
@@ -147,6 +150,9 @@ func parseConfigs() error {
 	}
 	if options.vaultObjectName == "" {
 		return fmt.Errorf("-vaultObjectName is not set")
+	}
+	if options.vaultObjectVersion == "" {
+		return fmt.Errorf("-vaultObjectVersion is not set")
 	}
 	if options.resourceGroup == "" {
 		return fmt.Errorf("-resourceGroup is not set")
