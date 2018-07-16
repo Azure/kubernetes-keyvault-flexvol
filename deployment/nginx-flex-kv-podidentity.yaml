@@ -1,10 +1,13 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: nginx-flex-kv
+  labels:
+    app: nginx-flex-kv-int
+    aadpodidbinding: "NAME OF the AzureIdentityBinding SELECTOR"
+  name: nginx-flex-kv-int
 spec:
   containers:
-  - name: nginx-flex-kv
+  - name: nginx-flex-kv-int
     image: nginx
     volumeMounts:
     - name: test
@@ -14,10 +17,8 @@ spec:
   - name: test
     flexVolume:
       driver: "azure/kv"
-      secretRef:
-        name: kvcreds
       options:
-        usePodIdentity: "false"
+        usePodIdentity: "true"
         keyvaultname: ""
         keyvaultobjectname: ""
         keyvaultobjecttype: secret

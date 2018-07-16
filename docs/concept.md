@@ -52,7 +52,7 @@ object from KeyVault. Flexvol driver will create the file at `MNTPATH` as passed
 
 ### Integrated With Pod Identity Mode
 
-FlexVol (based on the `useIntegratedIdentity` spec parameter) will instead call pod identity `NMI` component with ADAL on a specific endpoint
+FlexVol (based on the `usePodIdentity` spec parameter) will instead call pod identity `NMI` component with ADAL on a specific endpoint
 offered only on host network. 
 
 > spike: can we add more headers to this particular call to carry information such as pod name/namespace?
