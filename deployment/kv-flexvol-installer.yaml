@@ -21,7 +21,7 @@ spec:
         # * if you have used flex before on your cluster, use same directory
         # set TARGET_DIR env var and mount the same directory to to the container
       - name: flexvol-driver-installer
-        image: "ritazh/kv-flexvol-installer:v0.0.2"
+        image: "ritazh/kv-flexvol-installer:v0.0.3"
         imagePullPolicy: Always
         env:
         #forces the container not to exit 
