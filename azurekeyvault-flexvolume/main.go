@@ -21,9 +21,8 @@ import (
 
 const (
 	program                 = "azurekeyvault-flexvolume"
-	version                 = "0.0.2"
+	version                 = "0.0.3"
 	permission  os.FileMode = 0644
-	cache                   = 60
 )
 
 // Type of Azure Key Vault objects
@@ -89,18 +88,6 @@ func main() {
 	glog.Infof("starting the %s, %s", program, version)
 	kvClient := kv.New()
 
-	content := []byte("")
-
-	fileInfo, err := os.Lstat(path.Join(options.dir, options.vaultObjectName + ".txt"))
-	if fileInfo != nil && err == nil {
-		glog.V(0).Infof("secret %s already exists in %s", options.vaultObjectName, options.dir)
-		content, err = ioutil.ReadFile(path.Join(options.dir, options.vaultObjectName + ".txt"))
-		if err != nil {
-			showError("failed to read content from file, error: %s", err)
-			fmt.Printf("\n failed to read content from file \n")
-			os.Exit(1)
-		}
-	} 
 	vaultUrl, err := getVault(ctx, options.subscriptionId, options.vaultName, options.resourceGroup)
 	if err != nil {
 		showError("failed to get key vault, error: %s", err)
@@ -110,36 +97,29 @@ func main() {
 
 	token, err := GetKeyvaultToken(AuthGrantType(), options.cloudName, options.tenantId, options.usePodIdentity, options.aADClientSecret, options.aADClientID, options.podName, options.podNamespace)
 	if err != nil {
-		showError("failed to get keyvault token, error: %s", err)
-		fmt.Printf("\n failed to get keyvault token \n")
+		showError("failed to get key vault token, error: %s", err)
+		fmt.Printf("\n failed to get key vault token \n")
 		os.Exit(1)
 	}
 	
 	kvClient.Authorizer = token
-
+	glog.V(0).Infof("accessing %s %s", options.vaultObjectType, options.vaultObjectName)
 	switch options.vaultObjectType {
 	case VaultTypeSecret:
-		glog.V(0).Infof("accessing secret %s", options.vaultObjectName)
 		secret, err := kvClient.GetSecret(ctx, *vaultUrl, options.vaultObjectName, options.vaultObjectVersion)
 		if err != nil {
-			showError("failed to get secret, error: %s", err)
-			fmt.Printf("\n failed to get secret \n")
-			os.Exit(1)
+			handleError(options.vaultObjectType, options.vaultObjectName, err)
 		}
-		if string(content) == *secret.Value {
-			glog.V(0).Infof("secret %s content has not been updated", options.vaultObjectName)
-		} else {
-			if err = ioutil.WriteFile(path.Join(options.dir, options.vaultObjectName + ".txt"), []byte(*secret.Value), permission); err != nil {
-				showError("azure KeyVault failed to write secret %s at %s with err %s", options.vaultObjectName, options.dir, err)
-				fmt.Printf("\n azure KeyVault failed to write secret %s at %s \n", options.vaultObjectName, options.dir)
-				os.Exit(1)
-			}
-			glog.V(0).Infof("azure KeyVault wrote secret %s at %s", options.vaultObjectName, options.dir)
-		}
+		writeContent(*secret.Value, options.vaultObjectType, options.vaultObjectName)
 	case VaultTypeKey:
-		glog.V(0).Infof("accessing key %s", options.vaultObjectName)
+		keybundle, err := kvClient.GetKey(ctx, *vaultUrl, options.vaultObjectName, options.vaultObjectVersion)
+		if err != nil {
+			handleError(options.vaultObjectType, options.vaultObjectName, err)
+		}
+		// NOTE: we are writing the RSA modulus content of the key 
+		writeContent(*keybundle.Key.N, options.vaultObjectType, options.vaultObjectName)
 	case VaultTypeCertificate:
-		glog.V(0).Infof("accessing certificate %s", options.vaultObjectName)
+		glog.V(0).Infof("processing certificate %s", options.vaultObjectName)
 	default:
 		showError("invalid vaultObjectType")
 		fmt.Printf("\n invalid vaultObjectType, should be secret, key, or certificate \n")
@@ -148,6 +128,22 @@ func main() {
 	
 
 	os.Exit(0)
+}
+
+func handleError (objectType string, objectName string, err error) {
+	showError("failed to get %s %s, error: %s",  objectType, err)
+	fmt.Printf("\n failed to get %s %s\n", objectType, objectName)
+	os.Exit(1)
+}
+
+func writeContent(objectContent string, objectType string, objectName string) {
+	var err error
+	if err = ioutil.WriteFile(path.Join(options.dir, objectName), []byte(objectContent), permission); err != nil {
+		showError("azure KeyVault failed to write %s %s at %s with err %s", objectType, objectName, options.dir, err)
+		fmt.Printf("\n azure KeyVault failed to write %s %s at %s \n", objectType, objectName, options.dir)
+		os.Exit(1)
+	}
+	glog.V(0).Infof("azure KeyVault wrote %s %s at %s", objectType, objectName, options.dir)
 }
 
 func parseConfigs() error {
