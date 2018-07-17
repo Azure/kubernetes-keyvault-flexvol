@@ -7,14 +7,14 @@ apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   labels:
-    kvComponent: kernel-flexvol-installer
+    app: kv-flexvol-installer
   name: kv-flexvol-installer
   namespace: kv
 spec:
   template:
     metadata:
       labels:
-        kvComponent: kv-kubernetes-installer
+        app: kv-flexvol-installer
     spec:
       tolerations:
       containers:
