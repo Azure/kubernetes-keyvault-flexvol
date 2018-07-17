@@ -21,7 +21,7 @@ spec:
         usePodIdentity: "true"
         keyvaultname: ""
         keyvaultobjectname: ""
-        keyvaultobjecttype: secret
+        keyvaultobjecttype: secret # OPTIONS: secret, key, cert
         keyvaultobjectversion: ""
         resourcegroup: ""
         subscriptionid: ""
