@@ -110,19 +110,23 @@ func main() {
 		if err != nil {
 			handleError(options.vaultObjectType, options.vaultObjectName, err)
 		}
-		writeContent(*secret.Value, options.vaultObjectType, options.vaultObjectName)
+		writeContent([]byte(*secret.Value), options.vaultObjectType, options.vaultObjectName)
 	case VaultTypeKey:
 		keybundle, err := kvClient.GetKey(ctx, *vaultUrl, options.vaultObjectName, options.vaultObjectVersion)
 		if err != nil {
 			handleError(options.vaultObjectType, options.vaultObjectName, err)
 		}
 		// NOTE: we are writing the RSA modulus content of the key 
-		writeContent(*keybundle.Key.N, options.vaultObjectType, options.vaultObjectName)
+		writeContent([]byte(*keybundle.Key.N), options.vaultObjectType, options.vaultObjectName)
 	case VaultTypeCertificate:
-		glog.V(0).Infof("processing certificate %s", options.vaultObjectName)
+		certbundle, err := kvClient.GetCertificate(ctx, *vaultUrl, options.vaultObjectName, options.vaultObjectVersion)
+		if err != nil {
+			handleError(options.vaultObjectType, options.vaultObjectName, err)
+		}
+		writeContent(*certbundle.Cer, options.vaultObjectType, options.vaultObjectName)
 	default:
 		showError("invalid vaultObjectType")
-		fmt.Printf("\n invalid vaultObjectType, should be secret, key, or certificate \n")
+		fmt.Printf("\n invalid vaultObjectType, should be secret, key, or cert \n")
 		os.Exit(1)
 	}
 	
@@ -136,9 +140,9 @@ func handleError (objectType string, objectName string, err error) {
 	os.Exit(1)
 }
 
-func writeContent(objectContent string, objectType string, objectName string) {
+func writeContent(objectContent []byte, objectType string, objectName string) {
 	var err error
-	if err = ioutil.WriteFile(path.Join(options.dir, objectName), []byte(objectContent), permission); err != nil {
+	if err = ioutil.WriteFile(path.Join(options.dir, objectName), objectContent, permission); err != nil {
 		showError("azure KeyVault failed to write %s %s at %s with err %s", objectType, objectName, options.dir, err)
 		fmt.Printf("\n azure KeyVault failed to write %s %s at %s \n", objectType, objectName, options.dir)
 		os.Exit(1)
