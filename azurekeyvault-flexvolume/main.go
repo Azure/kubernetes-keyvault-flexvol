@@ -20,11 +20,21 @@ import (
 )
 
 const (
-	program					= "azurekeyvault-flexvolume"
-	version					= "0.0.2"
+	program                 = "azurekeyvault-flexvolume"
+	version                 = "0.0.2"
 	permission  os.FileMode = 0644
-	cache					= 60
+	cache                   = 60
 )
+
+// Type of Azure Key Vault objects
+const (
+	// VaultTypeSecret secret vault object type
+	VaultTypeSecret          string = "secret"
+	// VaultTypeKey key vault object type
+	VaultTypeKey             string = "key"
+	// VaultTypeCertificate certificate vault object type
+	VaultTypeCertificate     string = "cert"
+) 
 
 // Option is a collection of configs
 type Option struct {
@@ -34,6 +44,8 @@ type Option struct {
 	vaultObjectName string
 	// the version of the Azure Key Vault object
 	vaultObjectVersion string
+	// the type of the Azure Key Vault object
+	vaultObjectType string
 	// the resourcegroup of the Azure Key Vault
 	resourceGroup string
 	// directory to save data
@@ -59,8 +71,7 @@ func main() {
 	ctx := context.Background()
 
 	if err := parseConfigs(); err != nil {
-		showUsage("invalid config, %s", err)
-		fmt.Printf("\n invalid config \n")
+		fmt.Printf("\n %s\n", err)
 		os.Exit(1)
 	}
 	
@@ -106,22 +117,35 @@ func main() {
 	
 	kvClient.Authorizer = token
 
-	secret, err := kvClient.GetSecret(ctx, *vaultUrl, options.vaultObjectName, options.vaultObjectVersion)
-	if err != nil {
-		showError("failed to get secret, error: %s", err)
-		fmt.Printf("\n failed to get secret \n")
-		os.Exit(1)
-	}
-	if string(content) == *secret.Value {
-		glog.V(0).Infof("secret %s content has not been updated", options.vaultObjectName)
-	} else {
-		if err = ioutil.WriteFile(path.Join(options.dir, options.vaultObjectName + ".txt"), []byte(*secret.Value), permission); err != nil {
-			showError("azure KeyVault failed to write secret %s at %s with err %s", options.vaultObjectName, options.dir, err)
-			fmt.Printf("\n azure KeyVault failed to write secret %s at %s \n", options.vaultObjectName, options.dir)
+	switch options.vaultObjectType {
+	case VaultTypeSecret:
+		glog.V(0).Infof("accessing secret %s", options.vaultObjectName)
+		secret, err := kvClient.GetSecret(ctx, *vaultUrl, options.vaultObjectName, options.vaultObjectVersion)
+		if err != nil {
+			showError("failed to get secret, error: %s", err)
+			fmt.Printf("\n failed to get secret \n")
 			os.Exit(1)
 		}
-		glog.V(0).Infof("azure KeyVault wrote secret %s at %s", options.vaultObjectName, options.dir)
-	}	
+		if string(content) == *secret.Value {
+			glog.V(0).Infof("secret %s content has not been updated", options.vaultObjectName)
+		} else {
+			if err = ioutil.WriteFile(path.Join(options.dir, options.vaultObjectName + ".txt"), []byte(*secret.Value), permission); err != nil {
+				showError("azure KeyVault failed to write secret %s at %s with err %s", options.vaultObjectName, options.dir, err)
+				fmt.Printf("\n azure KeyVault failed to write secret %s at %s \n", options.vaultObjectName, options.dir)
+				os.Exit(1)
+			}
+			glog.V(0).Infof("azure KeyVault wrote secret %s at %s", options.vaultObjectName, options.dir)
+		}
+	case VaultTypeKey:
+		glog.V(0).Infof("accessing key %s", options.vaultObjectName)
+	case VaultTypeCertificate:
+		glog.V(0).Infof("accessing certificate %s", options.vaultObjectName)
+	default:
+		showError("invalid vaultObjectType")
+		fmt.Printf("\n invalid vaultObjectType, should be secret, key, or certificate \n")
+		os.Exit(1)
+	}
+	
 
 	os.Exit(0)
 }
@@ -129,6 +153,8 @@ func main() {
 func parseConfigs() error {
 	flag.StringVar(&options.vaultName, "vaultName", "", "Name of Azure Key Vault instance.")
 	flag.StringVar(&options.vaultObjectName, "vaultObjectName", "", "Name of Azure Key Vault object.")
+	
+	flag.StringVar(&options.vaultObjectType, "vaultObjectType", "", "Type of Azure Key Vault object.")
 	flag.StringVar(&options.vaultObjectVersion, "vaultObjectVersion", "", "Version of Azure Key Vault object.")
 	flag.StringVar(&options.resourceGroup, "resourceGroup", "", "Resource group name of Azure Key Vault.")
 	flag.StringVar(&options.subscriptionId, "subscriptionId", "", "subscriptionId to Azure.")
@@ -178,6 +204,10 @@ func parseConfigs() error {
 		if options.podNamespace == "" {
 			return fmt.Errorf("-podNamespace is not set")
 		}
+	}
+
+	if options.vaultObjectType != VaultTypeSecret && options.vaultObjectType != VaultTypeKey && options.vaultObjectType != VaultTypeCertificate {
+		return fmt.Errorf("-vaultObjectType is invalid, should be set to secret, key, or certificate")
 	}
 	return nil
 }

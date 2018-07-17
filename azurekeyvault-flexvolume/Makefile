@@ -1,6 +1,6 @@
 binary := azurekeyvault-flexvolume
 
-VERSION          := v0.0.2
+VERSION          := v0.0.3
 
 .PHONY: build
 build: authors deps
