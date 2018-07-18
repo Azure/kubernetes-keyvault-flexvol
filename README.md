@@ -10,7 +10,7 @@ With the Azure Key Vault FlexVolume, developers can access application-specific 
 
 The detailed design of this solution:
 
-- [Concept](https://github.com/Azure/kubernetes-keyvault-flexvol/docs/concept.md)
+- [Concept](/docs/concept.md)
 
 ## How to use ##
 
