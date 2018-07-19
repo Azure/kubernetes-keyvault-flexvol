@@ -7,14 +7,14 @@ apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   labels:
-    app: kv-flexvol-installer
-  name: kv-flexvol-installer
+    app: keyvault-flexvolume
+  name: keyvault-flexvolume
   namespace: kv
 spec:
   template:
     metadata:
       labels:
-        app: kv-flexvol-installer
+        app: keyvault-flexvolume
     spec:
       tolerations:
       containers:
@@ -23,6 +23,13 @@ spec:
       - name: flexvol-driver-installer
         image: "ritazh/kv-flexvol-installer:v0.0.3"
         imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 50m
+            memory: 10Mi
+          limits:
+            cpu: 50m
+            memory: 10Mi
         env:
         #forces the container not to exit 
         # to solve for this https://github.com/kubernetes/kubernetes/issues/17182

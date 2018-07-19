@@ -4,7 +4,7 @@ Azure Key Vault FlexVolume for Kubernetes - Integrates Azure Key Vault with Kube
 
 With the Azure Key Vault FlexVolume, developers can access application-specific secrets, keys, and certs stored in Azure Key Vault directly from their pods.
 
-**Project Status**: Alpha
+## **Project Status**: Alpha
 
 ## Design
 
@@ -33,9 +33,9 @@ kubectl get pods -n kv
 You should see the keyvault flexvolume installer pods running on each agent node:
 
 ```bash
-kv-flexvol-installer-f7bx8   1/1       Running   0          3m
-kv-flexvol-installer-rcxbl   1/1       Running   0          3m
-kv-flexvol-installer-z6jm6   1/1       Running   0          3m
+keyvault-flexvolume-f7bx8   1/1       Running   0          3m
+keyvault-flexvolume-rcxbl   1/1       Running   0          3m
+keyvault-flexvolume-z6jm6   1/1       Running   0          3m
 ```
 ### Use the KeyVault FlexVolume ###
 
@@ -78,6 +78,14 @@ secretRef:
 |subscriptionid|yes|name of subscription containing key vault instance|""|
 |tenantid|yes|name of tenant containing key vault instance|""|
 
+3. Specify mount path of flexvolume to mount key vault objects
+```yaml
+volumeMounts:
+    - name: test
+      mountPath: /kvmnt
+      readOnly: true
+```
+
 Example of an nginx pod accessing a secret from a key vault instance:
 
 ```yaml
@@ -110,7 +118,7 @@ spec:
         tenantid: "testtenant"
 ```
 
-Deploy pod
+Deploy your app
 
 ```bash
 kubectl create -f deployment/nginx-flex-kv.yaml
@@ -119,7 +127,7 @@ kubectl create -f deployment/nginx-flex-kv.yaml
 Validate the pod has access to the secret from key vault:
 
 ```bash
-k exec -it nginx-flex-kv cat /kvmnt/testsecret
+kubectl exec -it nginx-flex-kv cat /kvmnt/testsecret
 testvalue
 ```
 
@@ -129,40 +137,93 @@ testvalue
 
 💡 Make sure you have installed pod identity to your Kubernetes cluster
 
-Follow [these steps](https://github.com/Azure/aad-pod-identity#deploy-the-azure-aad-identity-infra) to install pod identity.
+1. Deploy pod identity to your cluster
+    Follow [these steps](https://github.com/Azure/aad-pod-identity#deploy-the-azure-aad-identity-infra) to install pod identity.
 
-Ensure your Azure user identity has all the required permissions to access content in your key vault instance. 
-If not, you can run the following using the Azure cli:
+2. Create User Azure Identity 
 
-```bash
-az keyvault set-policy -n $KV_NAME --key-permissions get list --spn <YOUR AZURE USER IDENTITY CLIENT ID>
-az keyvault set-policy -n $KV_NAME --secret-permissions get list --spn <YOURAZURE USER IDENTITY CLIENT ID>
-az keyvault set-policy -n $KV_NAME --certificate-permissions get list --spn <YOUR AZURE USER IDENTITY CLIENT ID>
-```
+    Create an Azure User Identity with the following command. 
+    Get `clientId` and `id` from the output. 
+    ```
+    az identity create -g <resourcegroup> -n <idname>
+    ```
 
-Fill in the missing pieces in your deployment like [this](https://github.com/Azure/kubernetes-keyvault-flexvol/blob/master/deployment/nginx-flex-kv-podidentity.yaml), make sure to update the following in your yaml:
+3. Assign permissions to new identity
+    Ensure your Azure user identity has all the required permissions to access content in your key vault instance. 
+    If not, you can run the following using the Azure cli:
 
-1. Include the `aadpodidbinding` label so that this pod will be assigned an identity
-```yaml
-metadata:
-  labels:
-    app: nginx-flex-kv-int
-    aadpodidbinding: "NAME OF the AzureIdentityBinding SELECTOR"
-```
-2. make sure to update `usePodIdentity` to `true`
-```yaml
-usePodIdentity: "true"
-```
-Deploy pod
+    ```bash
+    az keyvault set-policy -n $KV_NAME --key-permissions get list --spn <YOUR AZURE USER IDENTITY CLIENT ID>
+    az keyvault set-policy -n $KV_NAME --secret-permissions get list --spn <YOUR AZURE USER IDENTITY CLIENT ID>
+    az keyvault set-policy -n $KV_NAME --certificate-permissions get list --spn <YOUR AZURE USER IDENTITY CLIENT ID>
+    ```
+
+4. Add a new `AzureIdentity` for the new identity to your cluster
+
+    Edit and save this as aadpodidentity.yaml
+
+    Set `type: 0` for Managed Service Identity; `type: 1` for Service Principal
+    In this case, we are using managed service identity, `type: 0`.
+    Create a new name for the AzureIdentity. 
+    Set `ResourceID` to `id` of the Azure User Identity created from the previous step.
+
+    ```yaml
+    apiVersion: "aadpodidentity.k8s.io/v1"
+    kind: AzureIdentity
+    metadata:
+    name: <any-name>
+    spec:
+    type: 0
+    ResourceID: /subscriptions/<subid>/resourcegroups/<resourcegroup>/providers/Microsoft.ManagedIdentity/userAssignedIdentities/<idname>
+    ClientID: <clientid>
+    ```
+
+    ```bash
+    kubectl create -f aadpodidentity.yaml
+    ```
+
+4. Add a new `AzureIdentityBinding` for the nw identity to your cluster
+
+    Edit and save this as aadpodidentitybinding.yaml
+    ```yaml
+    apiVersion: "aadpodidentity.k8s.io/v1"
+    kind: AzureIdentityBinding
+    metadata:
+    name: demo1-azure-identity-binding
+    spec:
+    AzureIdentity: <name_of_AzureIdentity_created_from_previous_step>
+    Selector: <label value to match in your app>
+    ``` 
+
+    ```
+    kubectl create -f aadpodidentitybinding.yaml
+    ```
+
+5. Add the following to your deployment yaml, like [deployment/nginx-flex-kv-podidentity.yaml](https://github.com/Azure/kubernetes-keyvault-flexvol/blob/master/deployment/nginx-flex-kv-podidentity.yaml):
+
+    a. Include the `aadpodidbinding` label matching the `Selector` value set in the previous step so that this pod will be assigned an identity
+    ```yaml
+    metadata:
+    labels:
+        app: nginx-flex-kv-podid
+        aadpodidbinding: "NAME OF the AzureIdentityBinding SELECTOR"
+    ```
+
+    b. make sure to update `usePodIdentity` to `true`
+    ```yaml
+    usePodIdentity: "true"
+    ```
+
+6. Deploy your app
 
 ```bash
 kubectl create -f deployment/nginx-flex-kv-podidentity.yaml
 ```
 
-Validate the pod has access to the secret from key vault:
+7. Validate the pod has access to the secret from key vault:
 
 ```bash
-k exec -it nginx-flex-kv-podid cat /kvmnt/testsecret
+kubectl exec -it nginx-flex-kv-podid cat /kvmnt/testsecret
 testvalue
 ```
 
