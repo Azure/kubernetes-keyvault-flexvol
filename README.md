@@ -22,7 +22,7 @@ The detailed design of this solution:
 
 ```bash
 
-kubectl create -f https://github.com/Azure/kubernetes-keyvault-flexvol/blob/master/deployment/kv-flexvol-installer.yaml
+kubectl create -f https://raw.githubusercontent.com/Azure/kubernetes-keyvault-flexvol/master/deployment/kv-flexvol-installer.yaml
 ```
 To validate the installer is running as expected, run the following commands:
 
