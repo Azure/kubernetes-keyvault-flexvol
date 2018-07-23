@@ -20,6 +20,11 @@ The detailed design of this solution:
 
 ### Install the KeyVault Flexvolume ###
 
+#### OPTION 1 - ACS-Engine addon ####
+
+Follow [this](https://github.com/Azure/acs-engine/blob/master/examples/addons/keyvault-flexvolume/README.md) to use acs-engine to create a new Kubernetes cluster with the Azure Key Vault FlexVolume already deployed.
+
+#### OPTION 2 - Manually ####
 ```bash
 
 kubectl create -f https://raw.githubusercontent.com/Azure/kubernetes-keyvault-flexvol/master/deployment/kv-flexvol-installer.yaml
@@ -182,7 +187,7 @@ testvalue
     kubectl create -f aadpodidentity.yaml
     ```
 
-4. Add a new `AzureIdentityBinding` for the nw identity to your cluster
+5. Add a new `AzureIdentityBinding` for the nw identity to your cluster
 
     Edit and save this as aadpodidentitybinding.yaml
     ```yaml
@@ -199,7 +204,7 @@ testvalue
     kubectl create -f aadpodidentitybinding.yaml
     ```
 
-5. Add the following to your deployment yaml, like [deployment/nginx-flex-kv-podidentity.yaml](https://github.com/Azure/kubernetes-keyvault-flexvol/blob/master/deployment/nginx-flex-kv-podidentity.yaml):
+6. Add the following to your deployment yaml, like [deployment/nginx-flex-kv-podidentity.yaml](https://github.com/Azure/kubernetes-keyvault-flexvol/blob/master/deployment/nginx-flex-kv-podidentity.yaml):
 
     a. Include the `aadpodidbinding` label matching the `Selector` value set in the previous step so that this pod will be assigned an identity
     ```yaml
@@ -214,18 +219,18 @@ testvalue
     usePodIdentity: "true"
     ```
 
-6. Deploy your app
+7. Deploy your app
 
-```bash
-kubectl create -f deployment/nginx-flex-kv-podidentity.yaml
-```
+    ```bash
+    kubectl create -f deployment/nginx-flex-kv-podidentity.yaml
+    ```
 
-7. Validate the pod has access to the secret from key vault:
+8. Validate the pod has access to the secret from key vault:
 
-```bash
-kubectl exec -it nginx-flex-kv-podid cat /kvmnt/testsecret
-testvalue
-```
+    ```bash
+    kubectl exec -it nginx-flex-kv-podid cat /kvmnt/testsecret
+    testvalue
+    ```
 
 # Contributing
 
