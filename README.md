@@ -44,7 +44,7 @@ keyvault-flexvolume-z6jm6   1/1       Running   0          3m
 ```
 ### Use the KeyVault FlexVolume ###
 
-The KeyVault FlexVolume offers two modes for accessing a Key Vault instance: Service Principal and Pod Idenity.
+The KeyVault FlexVolume offers two modes for accessing a Key Vault instance: Service Principal and Pod Identity.
 
 #### OPTION 1 - Service Principal ####
 
