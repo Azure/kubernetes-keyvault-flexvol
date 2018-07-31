@@ -17,7 +17,7 @@ spec:
       secretRef:
         name: kvcreds
       options:
-        usePodIdentity: "false"
+        usepodidentity: "false"
         keyvaultname: ""
         keyvaultobjectname: ""
         keyvaultobjecttype: secret # OPTIONS: secret, key, cert
