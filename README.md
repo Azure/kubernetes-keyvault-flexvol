@@ -74,7 +74,7 @@ secretRef:
 
 |Name|Required|Description|Default Value|
 |---|---|---|---|
-|usePodIdentity|no|specify access mode: service principal or pod identity|"false"|
+|usepodidentity|no|specify access mode: service principal or pod identity|"false"|
 |keyvaultname|yes|name of key vault instance|""|
 |keyvaultobjectname|yes|name of key vault object to access|""|
 |keyvaultobjecttype|yes|key vault object type: secret, key, cert|""|
@@ -113,7 +113,7 @@ spec:
       secretRef:
         name: kvcreds # mounting point to the pod
       options:
-        usePodIdentity: "false"
+        usepodidentity: "false"
         keyvaultname: "testkeyvault"
         keyvaultobjectname: "testsecret"
         keyvaultobjecttype: secret # OPTIONS: secret, key, cert
@@ -214,9 +214,9 @@ testvalue
         aadpodidbinding: "NAME OF the AzureIdentityBinding SELECTOR"
     ```
 
-    b. make sure to update `usePodIdentity` to `true`
+    b. make sure to update `usepodidentity` to `true`
     ```yaml
-    usePodIdentity: "true"
+    usepodidentity: "true"
     ```
 
 7. Deploy your app
