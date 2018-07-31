@@ -58,6 +58,9 @@ Ensure this service principal has all the required permissions to access content
 If not, you can run the following using the Azure cli:
 
 ```bash
+# Assign Reader Role to the service principal for your keyvault
+az role assignment create --role Reader --assignee <principalid> --scope /subscriptions/<subscriptionid>/resourcegroups/<resourcegroup>/providers/Microsoft.KeyVault/vaults/<keyvaultname>
+
 az keyvault set-policy -n $KV_NAME --key-permissions get list --spn <YOUR SPN CLIENT ID>
 az keyvault set-policy -n $KV_NAME --secret-permissions get list --spn <YOUR SPN CLIENT ID>
 az keyvault set-policy -n $KV_NAME --certificate-permissions get list --spn <YOUR SPN CLIENT ID>
@@ -154,12 +157,18 @@ testvalue
     ```
 
 3. Assign permissions to new identity
-    Ensure your Azure user identity has all the required permissions to access content in your key vault instance. 
+    Ensure your Azure user identity has all the required permissions to read the keyvault instance and to access content within your key vault instance. 
     If not, you can run the following using the Azure cli:
 
     ```bash
+    # Assign Reader Role to new Identity for your keyvault
+    az role assignment create --role Reader --assignee <principalid> --scope /subscriptions/<subscriptionid>/resourcegroups/<resourcegroup>/providers/Microsoft.KeyVault/vaults/<keyvaultname>
+
+    # set policy to access keys in your keyvault
     az keyvault set-policy -n $KV_NAME --key-permissions get list --spn <YOUR AZURE USER IDENTITY CLIENT ID>
+    # set policy to access secrets in your keyvault
     az keyvault set-policy -n $KV_NAME --secret-permissions get list --spn <YOUR AZURE USER IDENTITY CLIENT ID>
+    # set policy to access certs in your keyvault
     az keyvault set-policy -n $KV_NAME --certificate-permissions get list --spn <YOUR AZURE USER IDENTITY CLIENT ID>
     ```
 
