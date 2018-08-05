@@ -51,7 +51,7 @@ The KeyVault FlexVolume offers two modes for accessing a Key Vault instance: Ser
 Add your service principal credentials as a Kubernetes secrets accessible by the KeyVault FlexVolume driver.
 
 ```bash
-kubectl create secret generic kvcreds --from-literal clientid=<CLIENTID> --from-literal clientsecret=<CLIENTSECRET> --type="azure/kv”
+kubectl create secret generic kvcreds --from-literal clientid=<CLIENTID> --from-literal clientsecret=<CLIENTSECRET> --type=azure/kv
 ```
 
 Ensure this service principal has all the required permissions to access content in your key vault instance. 
@@ -66,7 +66,7 @@ az keyvault set-policy -n $KV_NAME --secret-permissions get list --spn <YOUR SPN
 az keyvault set-policy -n $KV_NAME --certificate-permissions get list --spn <YOUR SPN CLIENT ID>
 ```
 
-Fill in the missing pieces in your deployment like [this](https://github.com/Azure/kubernetes-keyvault-flexvol/blob/master/deployment/nginx-flex-kv.yaml), make sure to:
+Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvault-flexvol/blob/master/deployment/nginx-flex-kv.yaml) deployment for your own deployment, make sure to:
 
 1. reference the service principal kubernetes secret created in the previous step
 ```yaml
@@ -145,10 +145,10 @@ testvalue
 
 💡 Make sure you have installed pod identity to your Kubernetes cluster
 
-1. Deploy pod identity to your cluster
+1. Deploy pod identity components to your cluster
     Follow [these steps](https://github.com/Azure/aad-pod-identity#deploy-the-azure-aad-identity-infra) to install pod identity.
 
-2. Create User Azure Identity 
+2. Create an Azure User Identity 
 
     Create an Azure User Identity with the following command. 
     Get `clientId` and `id` from the output. 
@@ -174,7 +174,7 @@ testvalue
 
 4. Add a new `AzureIdentity` for the new identity to your cluster
 
-    Edit and save this as aadpodidentity.yaml
+    Edit and save this as `aadpodidentity.yaml`
 
     Set `type: 0` for Managed Service Identity; `type: 1` for Service Principal
     In this case, we are using managed service identity, `type: 0`.
@@ -196,9 +196,9 @@ testvalue
     kubectl create -f aadpodidentity.yaml
     ```
 
-5. Add a new `AzureIdentityBinding` for the nw identity to your cluster
+5. Add a new `AzureIdentityBinding` for the new Azure identity to your cluster
 
-    Edit and save this as aadpodidentitybinding.yaml
+    Edit and save this as `aadpodidentitybinding.yaml`
     ```yaml
     apiVersion: "aadpodidentity.k8s.io/v1"
     kind: AzureIdentityBinding
@@ -219,7 +219,6 @@ testvalue
     ```yaml
     metadata:
     labels:
-        app: nginx-flex-kv-podid
         aadpodidbinding: "NAME OF the AzureIdentityBinding SELECTOR"
     ```
 
