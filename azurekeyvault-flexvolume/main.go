@@ -21,7 +21,7 @@ import (
 
 const (
 	program                 = "azurekeyvault-flexvolume"
-	version                 = "0.0.3"
+	version                 = "0.0.4"
 	permission  os.FileMode = 0644
 )
 
