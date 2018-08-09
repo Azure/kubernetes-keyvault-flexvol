@@ -24,7 +24,7 @@ log() {
 	echo $* >&1
 }
 ismounted() {
-    count=`sudo ls ${MNTPATH} | wc -l`
+    count=`ls ${MNTPATH} | wc -l`
 	if [ $count -gt 0 ] ; then
 		echo "`date` ismounted | ${MNTPATH} exists" >>$LOG
 		echo "1"
