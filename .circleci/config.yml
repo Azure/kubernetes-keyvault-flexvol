@@ -1,0 +1,47 @@
+# Golang CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-go/ for more details
+version: 2
+variables:
+  - &workdir 
+    /go/src/github.com/Azure/kubernetes-keyvault-flexvol/azurekeyvault-flexvolume
+  - &docker-image
+      - image: circleci/golang:1.9
+  - &build
+    name: Build
+    command:
+      V=1 make build
+  - &run
+    name: Run
+    command: |
+      sudo .../deployment/flexvol-installer/azurekeyvault-flexvolume > /dev/null
+    background: true
+jobs:
+  build:
+    docker: *docker-image
+    working_directory: *workdir
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run: *build
+      - persist_to_workspace:
+          root: *workdir
+          paths:
+            - ./*
+
+  runtests:
+    docker: *docker-image
+    working_directory: *workdir
+    steps:
+      - attach_workspace:
+          at: *workdir
+      - run: *run
+
+workflows:
+  version: 2
+  build-tests:
+    jobs:
+      - build
+      - runtests:
+          requires:
+            - build
