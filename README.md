@@ -4,7 +4,7 @@ Azure Key Vault FlexVolume for Kubernetes - Integrates Azure Key Vault with Kube
 
 With the Azure Key Vault FlexVolume, developers can access application-specific secrets, keys, and certs stored in Azure Key Vault directly from their pods.
 
-## **Project Status**: Alpha
+[![CircleCI](https://circleci.com/gh/Azure/kubernetes-keyvault-flexvol/tree/master.svg?style=svg)](https://circleci.com/gh/Azure/kubernetes-keyvault-flexvol/tree/master)
 
 ## Design
 

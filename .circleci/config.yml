@@ -4,17 +4,17 @@
 version: 2
 variables:
   - &workdir 
-    /go/src/github.com/Azure/kubernetes-keyvault-flexvol/azurekeyvault-flexvolume
+    /go/src/github.com/Azure/kubernetes-keyvault-flexvol
   - &docker-image
       - image: circleci/golang:1.9
   - &build
     name: Build
     command:
-      V=1 make build
+      cd azurekeyvault-flexvolume && V=1 make build
   - &run
     name: Run
     command: |
-      sudo .../deployment/flexvol-installer/azurekeyvault-flexvolume > /dev/null
+      sudo deployment/flexvol-installer/azurekeyvault-flexvolume > /dev/null
     background: true
 jobs:
   build:
