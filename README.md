@@ -24,7 +24,8 @@ The detailed design of this solution:
 
 Follow [this](https://github.com/Azure/acs-engine/blob/master/examples/addons/keyvault-flexvolume/README.md) to use acs-engine to create a new Kubernetes cluster with the Azure Key Vault FlexVolume already deployed.
 
-#### OPTION 2 - Manually ####
+#### OPTION 2 - AKS (Azure Kubernetes Service) Manually ####
+
 ```bash
 
 kubectl create -f https://raw.githubusercontent.com/Azure/kubernetes-keyvault-flexvol/master/deployment/kv-flexvol-installer.yaml
@@ -185,11 +186,11 @@ testvalue
     apiVersion: "aadpodidentity.k8s.io/v1"
     kind: AzureIdentity
     metadata:
-    name: <any-name>
+     name: <any-name>
     spec:
-    type: 0
-    ResourceID: /subscriptions/<subid>/resourcegroups/<resourcegroup>/providers/Microsoft.ManagedIdentity/userAssignedIdentities/<idname>
-    ClientID: <clientid>
+     type: 0
+     ResourceID: /subscriptions/<subid>/resourcegroups/<resourcegroup>/providers/Microsoft.ManagedIdentity/userAssignedIdentities/<idname>
+     ClientID: <clientid>
     ```
 
     ```bash
@@ -203,10 +204,10 @@ testvalue
     apiVersion: "aadpodidentity.k8s.io/v1"
     kind: AzureIdentityBinding
     metadata:
-    name: demo1-azure-identity-binding
+     name: demo1-azure-identity-binding
     spec:
-    AzureIdentity: <name_of_AzureIdentity_created_from_previous_step>
-    Selector: <label value to match in your app>
+     AzureIdentity: <name_of_AzureIdentity_created_from_previous_step>
+     Selector: <label value to match in your app>
     ``` 
 
     ```
