@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
+	"regexp"
 
 	"github.com/golang/glog"
 	"github.com/Azure/go-autorest/autorest"
@@ -157,9 +158,10 @@ func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource 
 			if err != nil {
 				return nil, err
 			}
-			///TODO: remove verbose logging
-			fmt.Printf("\n accesstoken: %s\n", nmiResp.Token.AccessToken)
-			fmt.Printf("\n clientid: %s\n", nmiResp.ClientID)
+			
+			r, _ := regexp.Compile("^(\\S{4})(\\S|\\s)*(\\S{4})$")
+			fmt.Printf("\n accesstoken: %s\n", r.ReplaceAllString(nmiResp.Token.AccessToken, "$1##### REDACTED #####$3"))
+			fmt.Printf("\n clientid: %s\n", r.ReplaceAllString(nmiResp.ClientID, "$1##### REDACTED #####$3"))
 
 			token := nmiResp.Token
 			clientID := nmiResp.ClientID
