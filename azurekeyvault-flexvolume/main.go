@@ -21,7 +21,7 @@ import (
 
 const (
 	program                 = "azurekeyvault-flexvolume"
-	version                 = "0.0.4"
+	version                 = "0.0.5"
 	permission  os.FileMode = 0644
 )
 
@@ -177,9 +177,6 @@ func parseConfigs() error {
 	if options.vaultObjectName == "" {
 		return fmt.Errorf("-vaultObjectName is not set")
 	}
-	if options.vaultObjectVersion == "" {
-		return fmt.Errorf("-vaultObjectVersion is not set")
-	}
 	if options.resourceGroup == "" {
 		return fmt.Errorf("-resourceGroup is not set")
 	}
@@ -188,6 +185,9 @@ func parseConfigs() error {
 	}
 	if options.dir == "" {
 		return fmt.Errorf("-dir is not set")
+	}
+	if options.tenantId == "" {
+		return fmt.Errorf("-tenantId is not set")
 	}
 
 	if options.usePodIdentity == false {
