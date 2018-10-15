@@ -17,11 +17,11 @@ spec:
       secretRef:
         name: kvcreds
       options:
-        usepodidentity: "false"
+        usepodidentity: "false" # OPTIONAL, if not provided, will default to "false"
         keyvaultname: ""
         keyvaultobjectname: ""
         keyvaultobjecttype: secret # OPTIONS: secret, key, cert
-        keyvaultobjectversion: ""
+        keyvaultobjectversion: "" # OPTIONAL, if not provided, will get latest
         resourcegroup: ""
         subscriptionid: ""
         tenantid: ""
