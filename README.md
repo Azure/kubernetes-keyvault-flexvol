@@ -82,7 +82,7 @@ secretRef:
 |keyvaultname|yes|name of key vault instance|""|
 |keyvaultobjectname|yes|name of key vault object to access|""|
 |keyvaultobjecttype|yes|key vault object type: secret, key, cert|""|
-|keyvaultobjectversion|yes|key vault object version|""|
+|keyvaultobjectversion|no|key vault object version, if not provided, will use latest|""|
 |resourcegroup|yes|name of resource group containing key vault instance|""|
 |subscriptionid|yes|name of subscription containing key vault instance|""|
 |tenantid|yes|name of tenant containing key vault instance|""|
