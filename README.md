@@ -62,9 +62,9 @@ If not, you can run the following using the Azure cli:
 # Assign Reader Role to the service principal for your keyvault
 az role assignment create --role Reader --assignee <principalid> --scope /subscriptions/<subscriptionid>/resourcegroups/<resourcegroup>/providers/Microsoft.KeyVault/vaults/<keyvaultname>
 
-az keyvault set-policy -n $KV_NAME --key-permissions get list --spn <YOUR SPN CLIENT ID>
-az keyvault set-policy -n $KV_NAME --secret-permissions get list --spn <YOUR SPN CLIENT ID>
-az keyvault set-policy -n $KV_NAME --certificate-permissions get list --spn <YOUR SPN CLIENT ID>
+az keyvault set-policy -n $KV_NAME --key-permissions get --spn <YOUR SPN CLIENT ID>
+az keyvault set-policy -n $KV_NAME --secret-permissions get --spn <YOUR SPN CLIENT ID>
+az keyvault set-policy -n $KV_NAME --certificate-permissions get --spn <YOUR SPN CLIENT ID>
 ```
 
 Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvault-flexvol/blob/master/deployment/nginx-flex-kv.yaml) deployment for your own deployment, make sure to:
@@ -166,11 +166,11 @@ testvalue
     az role assignment create --role Reader --assignee <principalid> --scope /subscriptions/<subscriptionid>/resourcegroups/<resourcegroup>/providers/Microsoft.KeyVault/vaults/<keyvaultname>
 
     # set policy to access keys in your keyvault
-    az keyvault set-policy -n $KV_NAME --key-permissions get list --spn <YOUR AZURE USER IDENTITY CLIENT ID>
+    az keyvault set-policy -n $KV_NAME --key-permissions get --spn <YOUR AZURE USER IDENTITY CLIENT ID>
     # set policy to access secrets in your keyvault
-    az keyvault set-policy -n $KV_NAME --secret-permissions get list --spn <YOUR AZURE USER IDENTITY CLIENT ID>
+    az keyvault set-policy -n $KV_NAME --secret-permissions get --spn <YOUR AZURE USER IDENTITY CLIENT ID>
     # set policy to access certs in your keyvault
-    az keyvault set-policy -n $KV_NAME --certificate-permissions get list --spn <YOUR AZURE USER IDENTITY CLIENT ID>
+    az keyvault set-policy -n $KV_NAME --certificate-permissions get --spn <YOUR AZURE USER IDENTITY CLIENT ID>
     ```
 
 4. Add a new `AzureIdentity` for the new identity to your cluster
