@@ -15,13 +15,13 @@ spec:
     flexVolume:
       driver: "azure/kv"
       secretRef:
-        name: kvcreds
+        name: kvcreds                  # [OPTIONAL] not required if using Pod Identity
       options:
-        usepodidentity: "false" # OPTIONAL, if not provided, will default to "false"
-        keyvaultname: ""
-        keyvaultobjectname: ""
-        keyvaultobjecttype: secret # OPTIONS: secret, key, cert
-        keyvaultobjectversion: "" # OPTIONAL, if not provided, will get latest
-        resourcegroup: ""
-        subscriptionid: ""
-        tenantid: ""
+        usepodidentity: "false"        # [OPTIONAL] if not provided, will default to "false"
+        keyvaultname: ""               # the name of the KeyVault
+        keyvaultobjectnames: ""        # list of KeyVault object names (semi-colon separated)
+        keyvaultobjecttypes: secret    # list of KeyVault object types: secret, key or cert (semi-colon separated)
+        keyvaultobjectversions: ""     # [OPTIONAL] list of KeyVault object versions (semi-colon separated), will get latest if empty
+        resourcegroup: ""              # the resource group of the KeyVault
+        subscriptionid: ""             # the subscription ID of the KeyVault
+        tenantid: ""                   # the tenant ID of the KeyVault
