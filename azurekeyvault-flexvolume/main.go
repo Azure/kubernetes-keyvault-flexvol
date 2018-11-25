@@ -12,53 +12,62 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
+
 	"github.com/golang/glog"
-	
-	kvmgmt "github.com/Azure/azure-sdk-for-go/services/keyvault/mgmt/2016-10-01/keyvault"
+
 	kv "github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
-	
+	kvmgmt "github.com/Azure/azure-sdk-for-go/services/keyvault/mgmt/2016-10-01/keyvault"
 )
 
 const (
-	program                 = "azurekeyvault-flexvolume"
-	version                 = "0.0.5"
-	permission  os.FileMode = 0644
+	program                = "azurekeyvault-flexvolume"
+	version                = "0.0.6"
+	permission os.FileMode = 0644
+	objectsSep             = ";"
 )
 
 // Type of Azure Key Vault objects
 const (
 	// VaultTypeSecret secret vault object type
-	VaultTypeSecret          string = "secret"
+	VaultTypeSecret string = "secret"
 	// VaultTypeKey key vault object type
-	VaultTypeKey             string = "key"
+	VaultTypeKey string = "key"
 	// VaultTypeCertificate certificate vault object type
-	VaultTypeCertificate     string = "cert"
-) 
+	VaultTypeCertificate string = "cert"
+)
 
 // Option is a collection of configs
 type Option struct {
 	// the name of the Azure Key Vault instance
 	vaultName string
-	// the name of the Azure Key Vault object
-	vaultObjectName string
-	// the version of the Azure Key Vault object
-	vaultObjectVersion string
-	// the type of the Azure Key Vault object
-	vaultObjectType string
+	// the name of the Azure Key Vault objects
+	vaultObjectNames string
+	// the versions of the Azure Key Vault objects
+	vaultObjectVersions string
+	// the types of the Azure Key Vault objects
+	vaultObjectTypes string
 	// the resourcegroup of the Azure Key Vault
 	resourceGroup string
-	// directory to save data
+	// directory to save the vault objects
 	dir string
 	// subscriptionId to azure
 	subscriptionId string
 	// version flag
 	showVersion bool
+	// cloud name
 	cloudName string
-	tenantId string 
+	// tenantID in AAD
+	tenantId string
+	// POD AAD Identity flag
 	usePodIdentity bool
+	// AAD app client secret (if not using POD AAD Identity)
 	aADClientSecret string
+	// AAD app client secret id (if not using POD AAD Identity)
 	aADClientID string
+	// the name of the pod (if using POD AAD Identity)
 	podName string
+	// the namespace of the pod (if using POD AAD Identity)
 	podNamespace string
 }
 
@@ -73,11 +82,12 @@ func main() {
 		fmt.Printf("\n %s\n", err)
 		os.Exit(1)
 	}
-	
+
 	if options.showVersion {
 		fmt.Printf("%s %s\n", program, version)
 		fmt.Printf("%s \n", options.subscriptionId)
 	}
+
 	_, err := os.Lstat(options.dir)
 	if err != nil {
 		showError("failed to get directory %s, error: %s", options.dir, err)
@@ -101,41 +111,57 @@ func main() {
 		fmt.Printf("\n failed to get key vault token \n")
 		os.Exit(1)
 	}
-	
+
 	kvClient.Authorizer = token
-	glog.V(0).Infof("accessing %s %s", options.vaultObjectType, options.vaultObjectName)
-	switch options.vaultObjectType {
-	case VaultTypeSecret:
-		secret, err := kvClient.GetSecret(ctx, *vaultUrl, options.vaultObjectName, options.vaultObjectVersion)
-		if err != nil {
-			handleError(options.vaultObjectType, options.vaultObjectName, err)
-		}
-		writeContent([]byte(*secret.Value), options.vaultObjectType, options.vaultObjectName)
-	case VaultTypeKey:
-		keybundle, err := kvClient.GetKey(ctx, *vaultUrl, options.vaultObjectName, options.vaultObjectVersion)
-		if err != nil {
-			handleError(options.vaultObjectType, options.vaultObjectName, err)
-		}
-		// NOTE: we are writing the RSA modulus content of the key 
-		writeContent([]byte(*keybundle.Key.N), options.vaultObjectType, options.vaultObjectName)
-	case VaultTypeCertificate:
-		certbundle, err := kvClient.GetCertificate(ctx, *vaultUrl, options.vaultObjectName, options.vaultObjectVersion)
-		if err != nil {
-			handleError(options.vaultObjectType, options.vaultObjectName, err)
-		}
-		writeContent(*certbundle.Cer, options.vaultObjectType, options.vaultObjectName)
-	default:
-		showError("invalid vaultObjectType")
-		fmt.Printf("\n invalid vaultObjectType, should be secret, key, or cert \n")
-		os.Exit(1)
+
+	objectTypes := strings.Split(options.vaultObjectTypes, objectsSep)
+	objectNames := strings.Split(options.vaultObjectNames, objectsSep)
+	numOfObjects := len(objectNames)
+
+	// objectVersions are optional so we take as much as we can
+	objectVersions := make([]string, numOfObjects)
+	for index, value := range strings.Split(options.vaultObjectVersions, objectsSep) {
+		objectVersions[index] = value
 	}
-	
+
+	for i := 0; i < numOfObjects; i++ {
+		objectType := objectTypes[i]
+		objectName := objectNames[i]
+		objectVersion := objectVersions[i]
+
+		glog.V(0).Infof("retrieving %s %s (version: %s)", objectType, objectName, objectVersion)
+		switch objectType {
+		case VaultTypeSecret:
+			secret, err := kvClient.GetSecret(ctx, *vaultUrl, objectName, objectVersion)
+			if err != nil {
+				handleError(objectType, objectName, err)
+			}
+			writeContent([]byte(*secret.Value), objectType, objectName)
+		case VaultTypeKey:
+			keybundle, err := kvClient.GetKey(ctx, *vaultUrl, objectName, objectVersion)
+			if err != nil {
+				handleError(objectType, objectName, err)
+			}
+			// NOTE: we are writing the RSA modulus content of the key
+			writeContent([]byte(*keybundle.Key.N), objectType, objectName)
+		case VaultTypeCertificate:
+			certbundle, err := kvClient.GetCertificate(ctx, *vaultUrl, objectName, objectVersion)
+			if err != nil {
+				handleError(objectType, objectName, err)
+			}
+			writeContent(*certbundle.Cer, objectType, objectName)
+		default:
+			showError("invalid vaultObjectType")
+			fmt.Printf("\n invalid vaultObjectType, should be secret, key, or cert \n")
+			os.Exit(1)
+		}
+	}
 
 	os.Exit(0)
 }
 
-func handleError (objectType string, objectName string, err error) {
-	showError("failed to get %s %s, error: %s",  objectType, err)
+func handleError(objectType string, objectName string, err error) {
+	showError("failed to get %s %s, error: %s", objectType, err)
 	fmt.Printf("\n failed to get %s %s\n", objectType, objectName)
 	os.Exit(1)
 }
@@ -152,10 +178,9 @@ func writeContent(objectContent []byte, objectType string, objectName string) {
 
 func parseConfigs() error {
 	flag.StringVar(&options.vaultName, "vaultName", "", "Name of Azure Key Vault instance.")
-	flag.StringVar(&options.vaultObjectName, "vaultObjectName", "", "Name of Azure Key Vault object.")
-	
-	flag.StringVar(&options.vaultObjectType, "vaultObjectType", "", "Type of Azure Key Vault object.")
-	flag.StringVar(&options.vaultObjectVersion, "vaultObjectVersion", "", "Version of Azure Key Vault object.")
+	flag.StringVar(&options.vaultObjectNames, "vaultObjectNames", "", "Names of Azure Key Vault objects, semi-colon separated.")
+	flag.StringVar(&options.vaultObjectTypes, "vaultObjectTypes", "", "Types of Azure Key Vault objects, semi-colon separated.")
+	flag.StringVar(&options.vaultObjectVersions, "vaultObjectVersions", "", "Versions of Azure Key Vault objects, semi-colon separated.")
 	flag.StringVar(&options.resourceGroup, "resourceGroup", "", "Resource group name of Azure Key Vault.")
 	flag.StringVar(&options.subscriptionId, "subscriptionId", "", "subscriptionId to Azure.")
 	flag.StringVar(&options.aADClientID, "aADClientID", "", "aADClientID to Azure.")
@@ -174,20 +199,30 @@ func parseConfigs() error {
 	if options.vaultName == "" {
 		return fmt.Errorf("-vaultName is not set")
 	}
-	if options.vaultObjectName == "" {
-		return fmt.Errorf("-vaultObjectName is not set")
+
+	if options.vaultObjectNames == "" {
+		return fmt.Errorf("-vaultObjectNames is not set")
 	}
+
 	if options.resourceGroup == "" {
 		return fmt.Errorf("-resourceGroup is not set")
 	}
+
 	if options.subscriptionId == "" {
 		return fmt.Errorf("-subscriptionId is not set")
 	}
+
 	if options.dir == "" {
 		return fmt.Errorf("-dir is not set")
 	}
+
 	if options.tenantId == "" {
 		return fmt.Errorf("-tenantId is not set")
+	}
+
+	if strings.Count(options.vaultObjectNames, objectsSep) !=
+		strings.Count(options.vaultObjectTypes, objectsSep) {
+		return fmt.Errorf("-vaultObjectNames and -vaultObjectTypes are not matching")
 	}
 
 	if options.usePodIdentity == false {
@@ -206,8 +241,11 @@ func parseConfigs() error {
 		}
 	}
 
-	if options.vaultObjectType != VaultTypeSecret && options.vaultObjectType != VaultTypeKey && options.vaultObjectType != VaultTypeCertificate {
-		return fmt.Errorf("-vaultObjectType is invalid, should be set to secret, key, or certificate")
+	// validate all object types
+	for _, objectType := range strings.Split(options.vaultObjectTypes, objectsSep) {
+		if objectType != VaultTypeSecret && objectType != VaultTypeKey && objectType != VaultTypeCertificate {
+			return fmt.Errorf("-vaultObjectType is invalid, should be set to secret, key, or certificate")
+		}
 	}
 	return nil
 }
