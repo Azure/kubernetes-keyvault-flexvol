@@ -18,10 +18,8 @@ spec:
     spec:
       tolerations:
       containers:
-        # * if you have used flex before on your cluster, use same directory
-        # set TARGET_DIR env var and mount the same directory to to the container
       - name: flexvol-driver-installer
-        image: "mcr.microsoft.com/k8s/flexvolume/keyvault-flexvolume:v0.0.5"
+        image: "idanl/keyvault-flexvolume:v0.0.6"
         imagePullPolicy: Always
         resources:
           requests:
@@ -31,9 +29,8 @@ spec:
             cpu: 50m
             memory: 10Mi
         env:
-        #forces the container not to exit 
-        # to solve for this https://github.com/kubernetes/kubernetes/issues/17182
-        # until it is fixed
+          # if you have used flex before on your cluster, use same directory
+          # set TARGET_DIR env var and mount the same directory to to the container
         - name: TARGET_DIR
           value: "/etc/kubernetes/volumeplugins"
         volumeMounts:
@@ -41,7 +38,10 @@ spec:
           name: volplugins
       volumes:
       - hostPath:
-          path: "/etc/kubernetes/volumeplugins" #Modify this directory if your nodes are using a different one
+          # Modify this directory if your nodes are using a different one
+          # default is "/usr/libexec/kubernetes/kubelet-plugins/volume/exec" 
+          # below is Azure default
+          path: "/etc/kubernetes/volumeplugins" 
         name: volplugins
       nodeSelector:
         beta.kubernetes.io/os: linux
