@@ -250,14 +250,6 @@ func parseConfigs() error {
 	return nil
 }
 
-func getEnv(variable, value string) string {
-	if v := os.Getenv(variable); v != "" {
-		return v
-	}
-
-	return value
-}
-
 func showUsage(message string, args ...interface{}) {
 	flag.PrintDefaults()
 	if message != "" {
