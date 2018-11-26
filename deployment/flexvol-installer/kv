@@ -58,6 +58,14 @@ mount() {
 	KEYVAULT_OBJECT_VERSIONS="$(echo "$2"|"$JQ" -r '.keyvaultobjectversions //empty')"
 	ALIAS="$(echo "$2"|"$JQ" -r '.alias //empty')"
 	
+    # backward compatibility (should be deprecated!)
+	if [ -z "${KEYVAULT_OBJECT_NAMES}" ]; then
+		KEYVAULT_OBJECT_NAMES="$(echo "$2"|"$JQ" -r '.keyvaultobjectname //empty')"
+		KEYVAULT_OBJECT_TYPES="$(echo "$2"|"$JQ" -r '.keyvaultobjecttype //empty')"
+		KEYVAULT_OBJECT_VERSIONS="$(echo "$2"|"$JQ" -r '.keyvaultobjectversion //empty')"
+
+	fi
+
 	if [ $(ismounted) -eq 1 ] ; then
 		log "{\"status\": \"Success\"}"
 		exit 0
