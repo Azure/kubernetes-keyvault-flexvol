@@ -3,7 +3,7 @@
 DIR=$(dirname "$(readlink -f "$0")")
 JQ="/usr/bin/jq"
 LOG="/var/log/kv-driver.log"
-VER="0.0.5"
+VER="0.0.6"
 KVFV="${DIR}/azurekeyvault-flexvolume"
 
 usage() {
@@ -48,16 +48,24 @@ mount() {
 	SUBSCRIPTION_ID="$(echo "$2"|"$JQ" -r '.subscriptionid //empty')"
 	TENANT_ID="$(echo "$2"|"$JQ" -r '.tenantid //empty')"
 	KEYVAULT_NAME="$(echo "$2"|"$JQ" -r '.keyvaultname //empty')"
-	KEYVAULT_OBJECT_NAME="$(echo "$2"|"$JQ" -r '.keyvaultobjectname //empty')"
-	KEYVAULT_OBJECT_TYPE="$(echo "$2"|"$JQ" -r '.keyvaultobjecttype //empty')"
+	KEYVAULT_OBJECT_NAMES="$(echo "$2"|"$JQ" -r '.keyvaultobjectnames //empty')"
+	KEYVAULT_OBJECT_TYPES="$(echo "$2"|"$JQ" -r '.keyvaultobjecttypes //empty')"
 	
 	USE_POD_IDENTITY="$(echo "$2"|"$JQ" -r '.usepodidentity //empty')"
 
 	# Optional
 	CLOUD_NAME="$(echo "$2"|"$JQ" -r '.cloudname //empty')"
-	KEYVAULT_OBJECT_VERSION="$(echo "$2"|"$JQ" -r '.keyvaultobjectversion //empty')"
+	KEYVAULT_OBJECT_VERSIONS="$(echo "$2"|"$JQ" -r '.keyvaultobjectversions //empty')"
 	ALIAS="$(echo "$2"|"$JQ" -r '.alias //empty')"
 	
+    # backward compatibility (should be deprecated!)
+	if [ -z "${KEYVAULT_OBJECT_NAMES}" ]; then
+		KEYVAULT_OBJECT_NAMES="$(echo "$2"|"$JQ" -r '.keyvaultobjectname //empty')"
+		KEYVAULT_OBJECT_TYPES="$(echo "$2"|"$JQ" -r '.keyvaultobjecttype //empty')"
+		KEYVAULT_OBJECT_VERSIONS="$(echo "$2"|"$JQ" -r '.keyvaultobjectversion //empty')"
+
+	fi
+
 	if [ $(ismounted) -eq 1 ] ; then
 		log "{\"status\": \"Success\"}"
 		exit 0
@@ -84,13 +92,13 @@ mount() {
 		exit 1
 	fi
 
-	if [ -z "${KEYVAULT_OBJECT_NAME}" ]; then
-		err "{\"status\": \"Failure\", \"message\": \"validation failed, keyvaultobjectname is empty\"}"
+	if [ -z "${KEYVAULT_OBJECT_NAMES}" ]; then
+		err "{\"status\": \"Failure\", \"message\": \"validation failed, keyvaultobjectnames is empty\"}"
 		exit 1
 	fi
 
-	if [ -z "${KEYVAULT_OBJECT_TYPE}" ]; then
-		err "{\"status\": \"Failure\", \"message\": \"validation failed, keyvaultobjecttype is empty\"}"
+	if [ -z "${KEYVAULT_OBJECT_TYPES}" ]; then
+		err "{\"status\": \"Failure\", \"message\": \"validation failed, keyvaultobjecttypes is empty\"}"
 		exit 1
 	fi
 
@@ -131,8 +139,8 @@ mount() {
 	fi
 	
 
-	echo "`date` EXEC: $KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectName=${KEYVAULT_OBJECT_NAME} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} -vaultObjectVersion=${KEYVAULT_OBJECT_VERSION} -vaultObjectType=${KEYVAULT_OBJECT_TYPE}" >> $LOG
-	$KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectName=${KEYVAULT_OBJECT_NAME} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} -vaultObjectVersion=${KEYVAULT_OBJECT_VERSION} -vaultObjectType=${KEYVAULT_OBJECT_TYPE} >>$LOG 2>&1
+	echo "`date` EXEC: $KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectNames=${KEYVAULT_OBJECT_NAMES} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} -vaultObjectVersions=${KEYVAULT_OBJECT_VERSIONS} -vaultObjectTypes=${KEYVAULT_OBJECT_TYPES}" >> $LOG
+	$KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectNames=${KEYVAULT_OBJECT_NAMES} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} -vaultObjectVersions=${KEYVAULT_OBJECT_VERSIONS} -vaultObjectTypes=${KEYVAULT_OBJECT_TYPES} >>$LOG 2>&1
 	
 	if [ $? -ne 0 ] ; then
 		errorLog=`tail -n 1 "${LOG}"`

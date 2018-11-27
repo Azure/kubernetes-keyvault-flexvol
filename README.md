@@ -79,13 +79,15 @@ secretRef:
 |Name|Required|Description|Default Value|
 |---|---|---|---|
 |usepodidentity|no|specify access mode: service principal or pod identity|"false"|
-|keyvaultname|yes|name of key vault instance|""|
-|keyvaultobjectname|yes|name of key vault object to access|""|
-|keyvaultobjecttype|yes|key vault object type: secret, key, cert|""|
-|keyvaultobjectversion|no|key vault object version, if not provided, will use latest|""|
+|keyvaultname|yes|name of KeyVault instance|""|
+|keyvaultobjectnames|yes|names of KeyVault objects to access|""|
+|keyvaultobjecttypes|yes|types of KeyVault objects: secret, key or cert|""|
+|keyvaultobjectversions|no|versions of KeyVault objects, if not provided, will use latest|""|
 |resourcegroup|yes|name of resource group containing key vault instance|""|
 |subscriptionid|yes|name of subscription containing key vault instance|""|
 |tenantid|yes|name of tenant containing key vault instance|""|
+
+keyvaultobjectnames, keyvaultobjecttypes and keyvaultobjectversions are semi-colon (;) separated.
 
 3. Specify mount path of flexvolume to mount key vault objects
 ```yaml
@@ -119,9 +121,9 @@ spec:
       options:
         usepodidentity: "false"
         keyvaultname: "testkeyvault"
-        keyvaultobjectname: "testsecret"
-        keyvaultobjecttype: secret # OPTIONS: secret, key, cert
-        keyvaultobjectversion: "testversion"
+        keyvaultobjectnames: "testsecret"
+        keyvaultobjecttypes: secret # OPTIONS: secret, key, cert
+        keyvaultobjectversions: "testversion"
         resourcegroup: "testresourcegroup"
         subscriptionid: "testsub"
         tenantid: "testtenant"

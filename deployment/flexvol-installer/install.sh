@@ -20,5 +20,5 @@ cp /bin/azurekeyvault-flexvolume ${kv_vol_dir}/azurekeyvault-flexvolume #script
 #https://github.com/kubernetes/kubernetes/issues/17182
 # if we are running on kubernetes cluster as a daemon set we should
 # not exit otherwise, container will restart and goes into crashloop (even if exit code is 0)
-while true; do echo "install done, daemonset sleeping" && sleep 300; done
+while true; do echo "install done, daemonset sleeping" && sleep 60; done
 
