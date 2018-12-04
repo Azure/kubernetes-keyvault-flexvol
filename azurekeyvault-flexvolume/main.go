@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 
 	kv "github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
 	kvmgmt "github.com/Azure/azure-sdk-for-go/services/keyvault/mgmt/2016-10-01/keyvault"
@@ -85,16 +86,19 @@ func main() {
 	context := context.Background()
 
 	if err := parseConfigs(); err != nil {
-		fmt.Printf("\n %s\n", err)
-		os.Exit(1)
+		glog.Fatalf("[error] : %s", err)
 	}
 
 	adapter := &KeyvaultFlexvolumeAdapter{ctx: context, options: options}
-	adapter.Run()
-
+	err := adapter.Run()
+	if err != nil {
+		glog.Fatalf("[error] : %s", err)
+	}
+	os.Exit(0)
 }
 
-func (adapter *KeyvaultFlexvolumeAdapter) Run() {
+//Run fetches the specified objects from keyvault and writes them on dir
+func (adapter *KeyvaultFlexvolumeAdapter) Run() error {
 	options := adapter.options
 	ctx := adapter.ctx
 	if options.showVersion {
@@ -104,9 +108,7 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() {
 
 	_, err := os.Lstat(options.dir)
 	if err != nil {
-		showError("failed to get directory %s, error: %s", options.dir, err)
-		fmt.Printf("\n failed to get directory %s \n", options.dir)
-		os.Exit(1)
+		return errors.Wrapf(err, "failed to get directory %s", options.dir)
 	}
 
 	glog.Infof("starting the %s, %s", program, version)
@@ -114,16 +116,12 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() {
 
 	vaultUrl, err := getVault(ctx, options.subscriptionId, options.vaultName, options.resourceGroup)
 	if err != nil {
-		showError("failed to get key vault, error: %s", err)
-		fmt.Printf("\n failed to get key vault \n")
-		os.Exit(1)
+		return errors.Wrap(err, "failed to get vault")
 	}
 
 	token, err := GetKeyvaultToken(AuthGrantType(), options.cloudName, options.tenantId, options.usePodIdentity, options.aADClientSecret, options.aADClientID, options.podName, options.podNamespace)
 	if err != nil {
-		showError("failed to get key vault token, error: %s", err)
-		fmt.Printf("\n failed to get key vault token \n")
-		os.Exit(1)
+		return errors.Wrapf(err, "failed to get key vault token")
 	}
 
 	kvClient.Authorizer = token
@@ -148,46 +146,40 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() {
 		case VaultTypeSecret:
 			secret, err := kvClient.GetSecret(ctx, *vaultUrl, objectName, objectVersion)
 			if err != nil {
-				handleError(objectType, objectName, err)
+				return wrapObjectTypeError(err, objectType, objectName, objectVersion)
 			}
-			writeContent([]byte(*secret.Value), objectType, objectName)
+			return writeContent([]byte(*secret.Value), objectType, objectName)
 		case VaultTypeKey:
 			keybundle, err := kvClient.GetKey(ctx, *vaultUrl, objectName, objectVersion)
 			if err != nil {
-				handleError(objectType, objectName, err)
+				return wrapObjectTypeError(err, objectType, objectName, objectVersion)
 			}
 			// NOTE: we are writing the RSA modulus content of the key
-			writeContent([]byte(*keybundle.Key.N), objectType, objectName)
+			return writeContent([]byte(*keybundle.Key.N), objectType, objectName)
 		case VaultTypeCertificate:
 			certbundle, err := kvClient.GetCertificate(ctx, *vaultUrl, objectName, objectVersion)
 			if err != nil {
-				handleError(objectType, objectName, err)
+				return wrapObjectTypeError(err, objectType, objectName, objectVersion)
 			}
-			writeContent(*certbundle.Cer, objectType, objectName)
+			return writeContent(*certbundle.Cer, objectType, objectName)
 		default:
-			showError("invalid vaultObjectType")
-			fmt.Printf("\n invalid vaultObjectType, should be secret, key, or cert \n")
-			os.Exit(1)
+			return errors.Errorf("Invalid vaultObjectTypes. Should be secret, key, or cert")
 		}
 	}
 
-	os.Exit(0)
+	return nil
 }
 
-func handleError(objectType string, objectName string, err error) {
-	showError("failed to get %s %s, error: %s", objectType, err)
-	fmt.Printf("\n failed to get %s %s\n", objectType, objectName)
-	os.Exit(1)
+func wrapObjectTypeError(err error, objectType string, objectName string, objectVersion string) error {
+	return errors.Wrapf(err, "failed to get objectType:%s, objetName:%s, objectVersion:%s", objectType, objectName, objectVersion)
 }
 
-func writeContent(objectContent []byte, objectType string, objectName string) {
-	var err error
-	if err = ioutil.WriteFile(path.Join(options.dir, objectName), objectContent, permission); err != nil {
-		showError("azure KeyVault failed to write %s %s at %s with err %s", objectType, objectName, options.dir, err)
-		fmt.Printf("\n azure KeyVault failed to write %s %s at %s \n", objectType, objectName, options.dir)
-		os.Exit(1)
+func writeContent(objectContent []byte, objectType string, objectName string) error {
+	if err := ioutil.WriteFile(path.Join(options.dir, objectName), objectContent, permission); err != nil {
+		return errors.Wrapf(err, "azure KeyVault failed to write %s %s at %s", objectType, objectName, options.dir)
 	}
 	glog.V(0).Infof("azure KeyVault wrote %s %s at %s", objectType, objectName, options.dir)
+	return nil
 }
 
 func parseConfigs() error {
@@ -285,12 +277,12 @@ func getVault(ctx context.Context, subscriptionID string, vaultName string, reso
 	vaultsClient := kvmgmt.NewVaultsClient(subscriptionID)
 	token, _ := GetManagementToken(AuthGrantType(), options.cloudName, options.tenantId, options.usePodIdentity, options.aADClientSecret, options.aADClientID, options.podName, options.podNamespace)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get management token, error: %v", err)
+		return nil, errors.Wrapf(err, "failed to get management token")
 	}
 	vaultsClient.Authorizer = token
 	vault, err := vaultsClient.Get(ctx, resourceGroup, vaultName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get vault, error: %v", err)
+		return nil, errors.Wrapf(err, "failed to get vault %s", vaultName)
 	}
 	return vault.Properties.VaultURI, nil
 }
