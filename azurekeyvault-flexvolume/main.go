@@ -72,25 +72,22 @@ type Option struct {
 	podNamespace string
 }
 
-//KeyvaultFlexvolumeAdapter
+// KeyvaultFlexvolumeAdapter encapsulates the logic to connect to keyvault using provided identity,
+// extract keys, secrets and certificate and write them on disk in the provided directory.
 type KeyvaultFlexvolumeAdapter struct {
 	ctx     context.Context
 	options Option
 }
 
-var (
-	options Option
-)
-
 func main() {
 	context := context.Background()
-
-	if err := parseConfigs(); err != nil {
+	options, err := parseConfigs()
+	if err != nil {
 		glog.Fatalf("[error] : %s", err)
 	}
 
-	adapter := &KeyvaultFlexvolumeAdapter{ctx: context, options: options}
-	err := adapter.Run()
+	adapter := &KeyvaultFlexvolumeAdapter{ctx: context, options: *options}
+	err = adapter.Run()
 	if err != nil {
 		glog.Fatalf("[error] : %s", err)
 	}
@@ -112,19 +109,16 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() error {
 	}
 
 	glog.Infof("starting the %s, %s", program, version)
-	kvClient := kv.New()
 
-	vaultUrl, err := getVault(ctx, options.subscriptionId, options.vaultName, options.resourceGroup)
+	vaultUrl, err := adapter.getVaultURL()
 	if err != nil {
 		return errors.Wrap(err, "failed to get vault")
 	}
 
-	token, err := GetKeyvaultToken(AuthGrantType(), options.cloudName, options.tenantId, options.usePodIdentity, options.aADClientSecret, options.aADClientID, options.podName, options.podNamespace)
+	kvClient, err := adapter.initializeKvClient()
 	if err != nil {
-		return errors.Wrapf(err, "failed to get key vault token")
+		return errors.Wrap(err, "failed to get keyvaultClient")
 	}
-
-	kvClient.Authorizer = token
 
 	objectTypes := strings.Split(options.vaultObjectTypes, objectsSep)
 	objectNames := strings.Split(options.vaultObjectNames, objectsSep)
@@ -148,20 +142,20 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() error {
 			if err != nil {
 				return wrapObjectTypeError(err, objectType, objectName, objectVersion)
 			}
-			return writeContent([]byte(*secret.Value), objectType, objectName)
+			return writeContent([]byte(*secret.Value), objectType, objectName, options.dir)
 		case VaultTypeKey:
 			keybundle, err := kvClient.GetKey(ctx, *vaultUrl, objectName, objectVersion)
 			if err != nil {
 				return wrapObjectTypeError(err, objectType, objectName, objectVersion)
 			}
 			// NOTE: we are writing the RSA modulus content of the key
-			return writeContent([]byte(*keybundle.Key.N), objectType, objectName)
+			return writeContent([]byte(*keybundle.Key.N), objectType, objectName, options.dir)
 		case VaultTypeCertificate:
 			certbundle, err := kvClient.GetCertificate(ctx, *vaultUrl, objectName, objectVersion)
 			if err != nil {
 				return wrapObjectTypeError(err, objectType, objectName, objectVersion)
 			}
-			return writeContent(*certbundle.Cer, objectType, objectName)
+			return writeContent(*certbundle.Cer, objectType, objectName, options.dir)
 		default:
 			return errors.Errorf("Invalid vaultObjectTypes. Should be secret, key, or cert")
 		}
@@ -170,19 +164,33 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() error {
 	return nil
 }
 
+func (adapter *KeyvaultFlexvolumeAdapter) initializeKvClient() (*kv.BaseClient, error) {
+	kvClient := kv.New()
+	options := adapter.options
+
+	token, err := GetKeyvaultToken(AuthGrantType(), options.cloudName, options.tenantId, options.usePodIdentity, options.aADClientSecret, options.aADClientID, options.podName, options.podNamespace)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get key vault token")
+	}
+
+	kvClient.Authorizer = token
+	return &kvClient, nil
+}
+
 func wrapObjectTypeError(err error, objectType string, objectName string, objectVersion string) error {
 	return errors.Wrapf(err, "failed to get objectType:%s, objetName:%s, objectVersion:%s", objectType, objectName, objectVersion)
 }
 
-func writeContent(objectContent []byte, objectType string, objectName string) error {
-	if err := ioutil.WriteFile(path.Join(options.dir, objectName), objectContent, permission); err != nil {
-		return errors.Wrapf(err, "azure KeyVault failed to write %s %s at %s", objectType, objectName, options.dir)
+func writeContent(objectContent []byte, objectType string, objectName string, dir string) error {
+	if err := ioutil.WriteFile(path.Join(dir, objectName), objectContent, permission); err != nil {
+		return errors.Wrapf(err, "azure KeyVault failed to write %s %s at %s", objectType, objectName, dir)
 	}
-	glog.V(0).Infof("azure KeyVault wrote %s %s at %s", objectType, objectName, options.dir)
+	glog.V(0).Infof("azure KeyVault wrote %s %s at %s", objectType, objectName, dir)
 	return nil
 }
 
-func parseConfigs() error {
+func parseConfigs() (*Option, error) {
+	var options Option
 	flag.StringVar(&options.vaultName, "vaultName", "", "Name of Azure Key Vault instance.")
 	flag.StringVar(&options.vaultObjectNames, "vaultObjectNames", "", "Names of Azure Key Vault objects, semi-colon separated.")
 	flag.StringVar(&options.vaultObjectTypes, "vaultObjectTypes", "", "Types of Azure Key Vault objects, semi-colon separated.")
@@ -203,86 +211,80 @@ func parseConfigs() error {
 	fmt.Println(options.vaultName)
 
 	if options.vaultName == "" {
-		return fmt.Errorf("-vaultName is not set")
+		return nil, fmt.Errorf("-vaultName is not set")
 	}
 
 	if options.vaultObjectNames == "" {
-		return fmt.Errorf("-vaultObjectNames is not set")
+		return nil, fmt.Errorf("-vaultObjectNames is not set")
 	}
 
 	if options.resourceGroup == "" {
-		return fmt.Errorf("-resourceGroup is not set")
+		return nil, fmt.Errorf("-resourceGroup is not set")
 	}
 
 	if options.subscriptionId == "" {
-		return fmt.Errorf("-subscriptionId is not set")
+		return nil, fmt.Errorf("-subscriptionId is not set")
 	}
 
 	if options.dir == "" {
-		return fmt.Errorf("-dir is not set")
+		return nil, fmt.Errorf("-dir is not set")
 	}
 
 	if options.tenantId == "" {
-		return fmt.Errorf("-tenantId is not set")
+		return nil, fmt.Errorf("-tenantId is not set")
 	}
 
 	if strings.Count(options.vaultObjectNames, objectsSep) !=
 		strings.Count(options.vaultObjectTypes, objectsSep) {
-		return fmt.Errorf("-vaultObjectNames and -vaultObjectTypes are not matching")
+		return nil, fmt.Errorf("-vaultObjectNames and -vaultObjectTypes are not matching")
 	}
 
 	if options.usePodIdentity == false {
 		if options.aADClientID == "" {
-			return fmt.Errorf("-aADClientID is not set")
+			return nil, fmt.Errorf("-aADClientID is not set")
 		}
 		if options.aADClientSecret == "" {
-			return fmt.Errorf("-aADClientSecret is not set")
+			return nil, fmt.Errorf("-aADClientSecret is not set")
 		}
 	} else {
 		if options.podName == "" {
-			return fmt.Errorf("-podName is not set")
+			return nil, fmt.Errorf("-podName is not set")
 		}
 		if options.podNamespace == "" {
-			return fmt.Errorf("-podNamespace is not set")
+			return nil, fmt.Errorf("-podNamespace is not set")
 		}
 	}
 
 	// validate all object types
 	for _, objectType := range strings.Split(options.vaultObjectTypes, objectsSep) {
 		if objectType != VaultTypeSecret && objectType != VaultTypeKey && objectType != VaultTypeCertificate {
-			return fmt.Errorf("-vaultObjectType is invalid, should be set to secret, key, or certificate")
+			return nil, fmt.Errorf("-vaultObjectType is invalid, should be set to secret, key, or certificate")
 		}
 	}
-	return nil
+	return &options, nil
 }
 
-func showUsage(message string, args ...interface{}) {
-	flag.PrintDefaults()
-	if message != "" {
-		fmt.Printf("\n[error] "+message+"\n", args...)
-	}
-}
+func (adapter *KeyvaultFlexvolumeAdapter) getVaultURL() (vaultUrl *string, err error) {
+	glog.Infof("subscriptionID: %s", adapter.options.subscriptionId)
+	glog.Infof("vaultName: %s", adapter.options.vaultName)
+	glog.Infof("resourceGroup: %s", adapter.options.resourceGroup)
 
-func showError(message string, args ...interface{}) {
-	if message != "" {
-		fmt.Printf("\n[error] "+message+"\n", args...)
-	}
-}
-
-func getVault(ctx context.Context, subscriptionID string, vaultName string, resourceGroup string) (vaultUrl *string, err error) {
-	glog.Infof("subscriptionID: %s", subscriptionID)
-	glog.Infof("vaultName: %s", vaultName)
-	glog.Infof("resourceGroup: %s", resourceGroup)
-
-	vaultsClient := kvmgmt.NewVaultsClient(subscriptionID)
-	token, _ := GetManagementToken(AuthGrantType(), options.cloudName, options.tenantId, options.usePodIdentity, options.aADClientSecret, options.aADClientID, options.podName, options.podNamespace)
-	if err != nil {
+	vaultsClient := kvmgmt.NewVaultsClient(adapter.options.subscriptionId)
+	token, tokenErr := GetManagementToken(AuthGrantType(),
+		adapter.options.cloudName,
+		adapter.options.tenantId,
+		adapter.options.usePodIdentity,
+		adapter.options.aADClientSecret,
+		adapter.options.aADClientID,
+		adapter.options.podName,
+		adapter.options.podNamespace)
+	if tokenErr != nil {
 		return nil, errors.Wrapf(err, "failed to get management token")
 	}
 	vaultsClient.Authorizer = token
-	vault, err := vaultsClient.Get(ctx, resourceGroup, vaultName)
+	vault, err := vaultsClient.Get(adapter.ctx, adapter.options.resourceGroup, adapter.options.vaultName)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get vault %s", vaultName)
+		return nil, errors.Wrapf(err, "failed to get vault %s", adapter.options.vaultName)
 	}
 	return vault.Properties.VaultURI, nil
 }
