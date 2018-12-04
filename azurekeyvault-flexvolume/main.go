@@ -83,7 +83,8 @@ func main() {
 	context := context.Background()
 	options, err := parseConfigs()
 	if err != nil {
-		glog.Fatalf("[error] : %s", err)
+		glog.Errorf("[error] : %s", err)
+		os.Exit(1)
 	}
 
 	adapter := &KeyvaultFlexvolumeAdapter{ctx: context, options: *options}
@@ -91,6 +92,7 @@ func main() {
 	if err != nil {
 		glog.Fatalf("[error] : %s", err)
 	}
+	glog.Flush()
 	os.Exit(0)
 }
 
@@ -210,58 +212,64 @@ func parseConfigs() (*Option, error) {
 	flag.Parse()
 	fmt.Println(options.vaultName)
 
+	err := Validate(options)
+	return &options, err
+}
+
+func Validate(options Option) error {
 	if options.vaultName == "" {
-		return nil, fmt.Errorf("-vaultName is not set")
+		return fmt.Errorf("-vaultName is not set")
 	}
 
 	if options.vaultObjectNames == "" {
-		return nil, fmt.Errorf("-vaultObjectNames is not set")
+		return fmt.Errorf("-vaultObjectNames is not set")
 	}
 
 	if options.resourceGroup == "" {
-		return nil, fmt.Errorf("-resourceGroup is not set")
+		return fmt.Errorf("-resourceGroup is not set")
 	}
 
 	if options.subscriptionId == "" {
-		return nil, fmt.Errorf("-subscriptionId is not set")
+		return fmt.Errorf("-subscriptionId is not set")
 	}
 
 	if options.dir == "" {
-		return nil, fmt.Errorf("-dir is not set")
+		return fmt.Errorf("-dir is not set")
 	}
 
 	if options.tenantId == "" {
-		return nil, fmt.Errorf("-tenantId is not set")
+		return fmt.Errorf("-tenantId is not set")
 	}
 
 	if strings.Count(options.vaultObjectNames, objectsSep) !=
 		strings.Count(options.vaultObjectTypes, objectsSep) {
-		return nil, fmt.Errorf("-vaultObjectNames and -vaultObjectTypes are not matching")
+		return fmt.Errorf("-vaultObjectNames and -vaultObjectTypes are not matching")
 	}
 
 	if options.usePodIdentity == false {
 		if options.aADClientID == "" {
-			return nil, fmt.Errorf("-aADClientID is not set")
+			return fmt.Errorf("-aADClientID is not set")
 		}
 		if options.aADClientSecret == "" {
-			return nil, fmt.Errorf("-aADClientSecret is not set")
+			return fmt.Errorf("-aADClientSecret is not set")
 		}
 	} else {
 		if options.podName == "" {
-			return nil, fmt.Errorf("-podName is not set")
+			return fmt.Errorf("-podName is not set")
 		}
 		if options.podNamespace == "" {
-			return nil, fmt.Errorf("-podNamespace is not set")
+			return fmt.Errorf("-podNamespace is not set")
 		}
 	}
 
 	// validate all object types
 	for _, objectType := range strings.Split(options.vaultObjectTypes, objectsSep) {
 		if objectType != VaultTypeSecret && objectType != VaultTypeKey && objectType != VaultTypeCertificate {
-			return nil, fmt.Errorf("-vaultObjectType is invalid, should be set to secret, key, or certificate")
+			return fmt.Errorf("-vaultObjectType is invalid, should be set to secret, key, or certificate")
 		}
 	}
-	return &options, nil
+
+	return nil
 }
 
 func (adapter *KeyvaultFlexvolumeAdapter) getVaultURL() (vaultUrl *string, err error) {
