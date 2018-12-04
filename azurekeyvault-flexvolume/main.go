@@ -71,18 +71,32 @@ type Option struct {
 	podNamespace string
 }
 
+//KeyvaultFlexvolumeAdapter
+type KeyvaultFlexvolumeAdapter struct {
+	ctx     context.Context
+	options Option
+}
+
 var (
 	options Option
 )
 
 func main() {
-	ctx := context.Background()
+	context := context.Background()
 
 	if err := parseConfigs(); err != nil {
 		fmt.Printf("\n %s\n", err)
 		os.Exit(1)
 	}
 
+	adapter := &KeyvaultFlexvolumeAdapter{ctx: context, options: options}
+	adapter.Run()
+
+}
+
+func (adapter *KeyvaultFlexvolumeAdapter) Run() {
+	options := adapter.options
+	ctx := adapter.ctx
 	if options.showVersion {
 		fmt.Printf("%s %s\n", program, version)
 		fmt.Printf("%s \n", options.subscriptionId)
