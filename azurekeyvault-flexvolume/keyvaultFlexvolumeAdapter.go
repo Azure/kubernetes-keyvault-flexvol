@@ -6,7 +6,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -30,8 +29,8 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() error {
 	options := adapter.options
 	ctx := adapter.ctx
 	if options.showVersion {
-		fmt.Printf("%s %s\n", program, version)
-		fmt.Printf("%s \n", options.subscriptionId)
+		glog.V(0).Infof("%s %s", program, version)
+		glog.V(2).Infof("%s", options.subscriptionId)
 	}
 
 	_, err := os.Lstat(options.dir)
@@ -53,19 +52,16 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() error {
 
 	objectTypes := strings.Split(options.vaultObjectTypes, objectsSep)
 	objectNames := strings.Split(options.vaultObjectNames, objectsSep)
-	numOfObjects := len(objectNames)
+	objectVersions := strings.Split(options.vaultObjectVersions, objectsSep)
 
-	// objectVersions are optional so we take as much as we can
-	objectVersions := make([]string, numOfObjects)
-	for index, value := range strings.Split(options.vaultObjectVersions, objectsSep) {
-		objectVersions[index] = value
-	}
-
-	for i := 0; i < numOfObjects; i++ {
+	for i := range objectNames {
 		objectType := objectTypes[i]
 		objectName := objectNames[i]
-		objectVersion := objectVersions[i]
-
+		// objectVersions are optional so we take as much as we can
+		objectVersion := ""
+		if len(objectVersions) == len(objectNames) {
+			objectVersion = objectVersions[i]
+		}
 		glog.V(0).Infof("retrieving %s %s (version: %s)", objectType, objectName, objectVersion)
 		switch objectType {
 		case VaultTypeSecret:
@@ -73,22 +69,23 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() error {
 			if err != nil {
 				return wrapObjectTypeError(err, objectType, objectName, objectVersion)
 			}
-			return writeContent([]byte(*secret.Value), objectType, objectName, options.dir)
+			writeContent([]byte(*secret.Value), objectType, objectName, options.dir)
 		case VaultTypeKey:
 			keybundle, err := kvClient.GetKey(ctx, *vaultUrl, objectName, objectVersion)
 			if err != nil {
 				return wrapObjectTypeError(err, objectType, objectName, objectVersion)
 			}
 			// NOTE: we are writing the RSA modulus content of the key
-			return writeContent([]byte(*keybundle.Key.N), objectType, objectName, options.dir)
+			writeContent([]byte(*keybundle.Key.N), objectType, objectName, options.dir)
 		case VaultTypeCertificate:
 			certbundle, err := kvClient.GetCertificate(ctx, *vaultUrl, objectName, objectVersion)
 			if err != nil {
 				return wrapObjectTypeError(err, objectType, objectName, objectVersion)
 			}
-			return writeContent(*certbundle.Cer, objectType, objectName, options.dir)
+			writeContent(*certbundle.Cer, objectType, objectName, options.dir)
 		default:
-			return errors.Errorf("Invalid vaultObjectTypes. Should be secret, key, or cert")
+			err := errors.Errorf("Invalid vaultObjectTypes. Should be secret, key, or cert")
+			return wrapObjectTypeError(err, objectType, objectName, objectVersion)
 		}
 	}
 
@@ -121,9 +118,9 @@ func writeContent(objectContent []byte, objectType string, objectName string, di
 }
 
 func (adapter *KeyvaultFlexvolumeAdapter) getVaultURL() (vaultUrl *string, err error) {
-	glog.Infof("subscriptionID: %s", adapter.options.subscriptionId)
-	glog.Infof("vaultName: %s", adapter.options.vaultName)
-	glog.Infof("resourceGroup: %s", adapter.options.resourceGroup)
+	glog.V(2).Infof("subscriptionID: %s", adapter.options.subscriptionId)
+	glog.V(2).Infof("vaultName: %s", adapter.options.vaultName)
+	glog.V(2).Infof("resourceGroup: %s", adapter.options.resourceGroup)
 
 	vaultsClient := kvmgmt.NewVaultsClient(adapter.options.subscriptionId)
 	token, tokenErr := GetManagementToken(AuthGrantType(),

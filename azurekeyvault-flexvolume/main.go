@@ -102,7 +102,6 @@ func parseConfigs() (*Option, error) {
 	flag.StringVar(&options.podNamespace, "podNamespace", "", "Namespace of the pod")
 
 	flag.Parse()
-	fmt.Println(options.vaultName)
 
 	err := Validate(options)
 	return &options, err
@@ -135,7 +134,7 @@ func Validate(options Option) error {
 
 	if strings.Count(options.vaultObjectNames, objectsSep) !=
 		strings.Count(options.vaultObjectTypes, objectsSep) {
-		return fmt.Errorf("-vaultObjectNames and -vaultObjectTypes are not matching")
+		return fmt.Errorf("-vaultObjectNames and -vaultObjectTypes do not have the same number of items")
 	}
 
 	if options.usePodIdentity == false {
