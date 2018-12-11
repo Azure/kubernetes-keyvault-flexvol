@@ -69,22 +69,26 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() error {
 			if err != nil {
 				return wrapObjectTypeError(err, objectType, objectName, objectVersion)
 			}
-			writeContent([]byte(*secret.Value), objectType, objectName, options.dir)
+			err = writeContent([]byte(*secret.Value), objectType, objectName, options.dir)
 		case VaultTypeKey:
 			keybundle, err := kvClient.GetKey(ctx, *vaultUrl, objectName, objectVersion)
 			if err != nil {
 				return wrapObjectTypeError(err, objectType, objectName, objectVersion)
 			}
 			// NOTE: we are writing the RSA modulus content of the key
-			writeContent([]byte(*keybundle.Key.N), objectType, objectName, options.dir)
+			err = writeContent([]byte(*keybundle.Key.N), objectType, objectName, options.dir)
 		case VaultTypeCertificate:
 			certbundle, err := kvClient.GetCertificate(ctx, *vaultUrl, objectName, objectVersion)
 			if err != nil {
 				return wrapObjectTypeError(err, objectType, objectName, objectVersion)
 			}
-			writeContent(*certbundle.Cer, objectType, objectName, options.dir)
+			err = writeContent(*certbundle.Cer, objectType, objectName, options.dir)
 		default:
 			err := errors.Errorf("Invalid vaultObjectTypes. Should be secret, key, or cert")
+		}
+
+		//handle writeContent and default case error
+		if err != nil {
 			return wrapObjectTypeError(err, objectType, objectName, objectVersion)
 		}
 	}
