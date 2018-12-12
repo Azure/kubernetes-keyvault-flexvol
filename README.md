@@ -1,10 +1,15 @@
 # Kubernetes-KeyVault-FlexVolume #
 
-Azure Key Vault FlexVolume for Kubernetes - Integrates Azure Key Vault with Kubernetes via a FlexVolume.  
+Key Vault FlexVolume for Kubernetes - Integrates Key Management Systems with Kubernetes via a FlexVolume.  
 
-With the Azure Key Vault FlexVolume, developers can access application-specific secrets, keys, and certs stored in Azure Key Vault directly from their pods.
+With the Key Vault FlexVolume, developers can mount multiple secrets, keys, and certs stored in Key Management Systems into their pods as a volume. Once the Volume is attached, the data in it is mounted into the container's file system. 
 
 [![CircleCI](https://circleci.com/gh/Azure/kubernetes-keyvault-flexvol/tree/master.svg?style=svg)](https://circleci.com/gh/Azure/kubernetes-keyvault-flexvol/tree/master)
+
+## Supported Providers
+* Azure Key Vault
+
+> 💡 NOTE: To enable encryption at rest of Kubernetes data in etcd using Azure Key Vault, use [Kubernetes KMS plugin for Azure Key Vault](https://github.com/Azure/kubernetes-kms).
 
 ## Design
 
@@ -20,9 +25,9 @@ The detailed design of this solution:
 
 ### Install the KeyVault Flexvolume ###
 
-#### OPTION 1 - ACS-Engine addon ####
+#### OPTION 1 - AKS-Engine addon ####
 
-Follow [this](https://github.com/Azure/acs-engine/blob/master/examples/addons/keyvault-flexvolume/README.md) to use acs-engine to create a new Kubernetes cluster with the Azure Key Vault FlexVolume already deployed.
+Follow [this](https://github.com/Azure/aks-engine/blob/master/examples/addons/keyvault-flexvolume/README.md) to use aks-engine to create a new Kubernetes cluster with the Key Vault FlexVolume already deployed.
 
 #### OPTION 2 - AKS (Azure Kubernetes Service) Manually ####
 
