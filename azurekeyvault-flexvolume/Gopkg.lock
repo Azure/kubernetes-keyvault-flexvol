@@ -2,66 +2,44 @@
 
 
 [[projects]]
-  digest = "1:978aa4b8b3218ac2aac482e096ff94d7da15326fe3b35dfa2b6351ef170d8cbb"
   name = "github.com/Azure/azure-sdk-for-go"
-  packages = [
-    "services/keyvault/2016-10-01/keyvault",
-    "services/keyvault/mgmt/2016-10-01/keyvault",
-    "version",
-  ]
-  pruneopts = ""
+  packages = ["services/keyvault/2016-10-01/keyvault","services/keyvault/mgmt/2016-10-01/keyvault","version"]
   revision = "4650843026a7fdec254a8d9cf893693a254edd0b"
   version = "v16.2.1"
 
 [[projects]]
-  digest = "1:0831bf5467f1721a3f1afaf1b3a0474df01f114544dfffcdf017d15ea6b5603f"
   name = "github.com/Azure/go-autorest"
-  packages = [
-    "autorest",
-    "autorest/adal",
-    "autorest/azure",
-    "autorest/date",
-    "autorest/to",
-    "autorest/validation",
-  ]
-  pruneopts = ""
+  packages = ["autorest","autorest/adal","autorest/azure","autorest/date","autorest/to","autorest/validation"]
   revision = "eaa7994b2278094c904d31993d26f56324db3052"
   version = "v10.8.1"
 
 [[projects]]
-  digest = "1:6098222470fe0172157ce9bbef5d2200df4edde17ee649c5d6e48330e4afa4c6"
   name = "github.com/dgrijalva/jwt-go"
   packages = ["."]
-  pruneopts = ""
   revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
   version = "v3.2.0"
 
 [[projects]]
   branch = "master"
-  digest = "1:107b233e45174dbab5b1324201d092ea9448e58243ab9f039e4c0f332e121e3a"
   name = "github.com/golang/glog"
   packages = ["."]
-  pruneopts = ""
   revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
 
 [[projects]]
-  digest = "1:7f569d906bdd20d906b606415b7d794f798f91a62fcfb6a4daa6d50690fb7a3f"
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
+
+[[projects]]
   name = "github.com/satori/go.uuid"
   packages = ["."]
-  pruneopts = ""
   revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
   version = "v1.2.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  input-imports = [
-    "github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault",
-    "github.com/Azure/azure-sdk-for-go/services/keyvault/mgmt/2016-10-01/keyvault",
-    "github.com/Azure/go-autorest/autorest",
-    "github.com/Azure/go-autorest/autorest/adal",
-    "github.com/Azure/go-autorest/autorest/azure",
-    "github.com/golang/glog",
-  ]
+  inputs-digest = "43ac01697aabcda065a24a6a90d4f479d491fad5a11d8812d8e6b55109c60302"
   solver-name = "gps-cdcl"
   solver-version = 1
