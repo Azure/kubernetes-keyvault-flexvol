@@ -247,6 +247,18 @@ testvalue
     kubectl exec -it nginx-flex-kv-podid cat /kvmnt/testsecret
     testvalue
     ```
+# About KeyVault 
+
+The Key Vault FlexVolume interacts with keyvault objects by using the keyvault API. If you need to understand the difference between Keys, Secrets and Certificate objects, we recommend that you start by reading the thorough documentation available on Keyvault : [About keys, secrets, and certificates](https://docs.microsoft.com/en-us/azure/key-vault/about-keys-secrets-and-certificates)
+
+## More about Certificates
+
+It is important to understand how a certificate is structured in keyvault.
+As mentioned in the REST API docs [here](https://docs.microsoft.com/en-us/azure/key-vault/certificate-scenarios#certificates-are-complex-objects) and [here](https://docs.microsoft.com/en-us/azure/key-vault/about-keys-secrets-and-certificates#composition-of-a-certificate), Azure Key Vault (AKV) represents a given X.509 certificate via three interrelated resources: an AKV-certificate, an AKV-key, and an AKV-secret. All three will share the same name and the same version and can be fetched independently.
+
+* The AKV-certificate provides the public key and certificate metadata. Specifying `cert` in `keyvaultobjecttypes` will fetch the public key and certificate metadata.
+* The AKV-key provides the private key of the X.509 certificate. It can be useful for performing cryptographic operations such as signing if the corresponding certificate was marked as non-exportable. Specifying `key` in `keyvaultobjecttypes` will fetch the private key of the certificate if its policy allows for private key exporting.
+* The AKV-secret provides a way to export the full X.509 certificate, including its private key (if its policy allows for private key exporting). Specifying `secret` in `keyvaultobjecttypes` will fetch the base64-encoded certificate bundle.
 
 # Contributing
 
