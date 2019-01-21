@@ -1,0 +1,16 @@
+apiVersion: "aadpodidentity.k8s.io/v1"
+kind: AzureIdentity
+metadata:
+ name: sslking-podidentity
+spec:
+ type: 0
+ ResourceID: /subscriptions/<SUB-ID>/resourcegroups/aks-traefik-flexvol/providers/Microsoft.ManagedIdentity/userAssignedIdentities/sslking
+ ClientID: <Client-Id>
+---
+apiVersion: "aadpodidentity.k8s.io/v1"
+kind: AzureIdentityBinding
+metadata:
+ name: sslking-azure-identity-binding
+spec:
+ AzureIdentity: sslking-podidentity
+ Selector: sslking-selector

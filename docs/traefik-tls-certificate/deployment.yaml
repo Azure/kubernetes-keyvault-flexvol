@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: release-name-traefik
+  labels:
+    app: traefik
+    chart: "traefik-1.59.0"
+    release: "release-name"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traefik
+      release: release-name
+  template:
+    metadata:
+      labels:
+        app: traefik
+        chart: "traefik-1.59.0"
+        release: "release-name"
+        aadpodidbinding: sslking-selector
+    spec:
+      serviceAccountName: release-name-traefik
+      terminationGracePeriodSeconds: 60
+      initContainers:
+      - image: tannerfe/alpine-openssl
+        name: convert-certs
+        command: ['sh', '-c', 'cat /certs/cert1 | base64 -d - > /ssl/certificate.pfx &&
+        openssl pkcs12 -in /ssl/certificate.pfx -out /ssl/certificate.pem -nodes -passin pass:"" &&
+        openssl pkey -in /ssl/certificate.pem -out /ssl/certificate.key']
+        volumeMounts:
+        - name: certs
+          mountPath: /certs
+          readOnly: true
+        - name: ssl
+          mountPath: /ssl
+      containers:
+      - image: traefik:1.7.7-alpine
+        name: release-name-traefik
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "20Mi"
+          limits:
+            cpu: "100m"
+            memory: "30Mi"
+        readinessProbe:
+          tcpSocket:
+            port: 80
+          failureThreshold: 1
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+        livenessProbe:
+          tcpSocket:
+            port: 80
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+        volumeMounts:
+        - mountPath: /config
+          name: config
+        - name: ssl
+          mountPath: /ssl
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        - name: https
+          containerPort: 443
+          protocol: TCP
+        - name: dash
+          containerPort: 8080
+          protocol: TCP
+        args:
+        - --configfile=/config/traefik.toml
+      volumes:
+      - name: config
+        configMap:
+          name: release-name-traefik
+      - name: ssl
+        emptyDir: {}
+      - name: certs
+        flexVolume:
+          driver: "azure/kv"
+          options:
+            keyvaultname: "clustervault1119"
+            keyvaultobjectname: "cert1" 
+            keyvaultobjecttype: "secret"
+            resourcegroup: "aks-traefik-flexvol"
+            subscriptionid: "SUB-ID"
+            tenantid: "TENANT-ID"
+            usepodidentity: "true"

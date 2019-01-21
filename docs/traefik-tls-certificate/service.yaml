@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: release-name-traefik
+  labels:
+    app: traefik
+    chart: "traefik-1.59.0"
+    release: "release-name"
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Cluster
+  selector:
+    app: traefik
+    release: release-name
+  ports:
+  - port: 80
+    name: http
+    targetPort: http
+  - port: 443
+    name: https

@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: release-name-traefik
+  labels:
+    app: traefik
+    chart: "traefik-1.59.0"
+    release: "release-name"
+data:
+  traefik.toml: |
+    # traefik.toml
+    logLevel = "DEBUG"
+    defaultEntryPoints = ["http","https"]
+    [entryPoints]
+      [entryPoints.http]
+      address = ":80"
+      compress = true
+      [entryPoints.https]
+      address = ":443"
+        [entryPoints.https.tls]
+        [entryPoints.https.tls.defaultCertificate]
+          certFile = "/ssl/certificate.pem"
+          keyFile = "/ssl/certificate.key"
+    [kubernetes]
+    [traefikLog]
+      format = "json"
+    [api]
+      entryPoint = "traefik"
+      dashboard = true

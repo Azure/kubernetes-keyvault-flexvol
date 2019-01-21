@@ -260,6 +260,10 @@ As mentioned in the REST API docs [here](https://docs.microsoft.com/en-us/azure/
 * The AKV-key provides the private key of the X.509 certificate. It can be useful for performing cryptographic operations such as signing if the corresponding certificate was marked as non-exportable. Specifying `key` in `keyvaultobjecttypes` will fetch the private key of the certificate if its policy allows for private key exporting.
 * The AKV-secret provides a way to export the full X.509 certificate, including its private key (if its policy allows for private key exporting). Specifying `secret` in `keyvaultobjecttypes` will fetch the base64-encoded certificate bundle.
 
+## Setup TLS entrypoint at the ingress level
+
+A detailed example of TLS certificate setup with Traefik is provided here : [docs/traefik-tls-certificate](docs/traefik-tls-certificate.md)
+
 # Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
