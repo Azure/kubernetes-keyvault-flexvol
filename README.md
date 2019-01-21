@@ -247,6 +247,11 @@ testvalue
     kubectl exec -it nginx-flex-kv-podid cat /kvmnt/testsecret
     testvalue
     ```
+
+### Specific use cases ###
+
+- [A detailed example for using a KeyVault certificate to setup an SSL entrypoint with Traefik](docs/traefik-tls-certificate)
+
 # About KeyVault 
 
 The Key Vault FlexVolume interacts with keyvault objects by using the keyvault API. If you need to understand the difference between Keys, Secrets and Certificate objects, we recommend that you start by reading the thorough documentation available on Keyvault : [About keys, secrets, and certificates](https://docs.microsoft.com/en-us/azure/key-vault/about-keys-secrets-and-certificates)
@@ -260,9 +265,6 @@ As mentioned in the REST API docs [here](https://docs.microsoft.com/en-us/azure/
 * The AKV-key provides the private key of the X.509 certificate. It can be useful for performing cryptographic operations such as signing if the corresponding certificate was marked as non-exportable. Specifying `key` in `keyvaultobjecttypes` will fetch the private key of the certificate if its policy allows for private key exporting.
 * The AKV-secret provides a way to export the full X.509 certificate, including its private key (if its policy allows for private key exporting). Specifying `secret` in `keyvaultobjecttypes` will fetch the base64-encoded certificate bundle.
 
-## Setup TLS entrypoint at the ingress level
-
-A detailed example of TLS certificate setup with Traefik is provided here : [docs/traefik-tls-certificate](docs/traefik-tls-certificate.md)
 
 # Contributing
 

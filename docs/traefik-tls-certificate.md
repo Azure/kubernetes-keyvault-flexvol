@@ -1,4 +1,4 @@
-# Using a keyvault certificate to setup SSL on traefik
+# Using a keyvault certificate to setup an SSL entrypoint with Traefik
 
 The following assumes that you have an Azure Keyvault, and flexvol setup on your kubernetes cluster.
 For the purpose of this documentation I have created a passwordless self-signed certificate in keyvault from azurce cli : 
