@@ -250,7 +250,7 @@ testvalue
 
 ### Specific use cases ###
 
-- [A detailed example for using a KeyVault certificate to setup an SSL entrypoint with Traefik](docs/traefik-tls-certificate)
+- [A detailed example for using a KeyVault certificate to setup an SSL entrypoint with Traefik](docs/traefik-tls-certificate.md)
 
 # About KeyVault 
 

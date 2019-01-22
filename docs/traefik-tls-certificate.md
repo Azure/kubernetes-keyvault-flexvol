@@ -3,7 +3,7 @@
 The following assumes that you have an Azure Keyvault, and flexvol setup on your kubernetes cluster.
 For the purpose of this documentation I have created a passwordless self-signed certificate in keyvault from azurce cli : 
 
-```console
+```bash
 az keyvault certificate create --vault-name myvault -n cert1 -p "$(az keyvault certificate get-default-policy -o json)"
 ```
 
@@ -36,8 +36,8 @@ Here is a breakdown of the sections of yaml that matters :
 
 ### initContainer
 
-When we download the certificate from keyvault as a secret, to retrieve the private key as well as the public part, the file is in `PKCS12` format, and base64 encoded.
-Traefik (and most ingresses), requires the certificate as PEM + private key pair format. We need to convert our PKCS12 file before starting Traefik. This is what the initContainer is doing :
+When we download the certificate from keyvault as a secret, to retrieve the private key as well as the public part, the file is in `PKCS12` format, and base64 encoded.  
+Traefik (and most ingresses), requires the certificate as PEM + private key pair format. We need to convert our PKCS12 file before starting Traefik. This is what the initContainer is doing : 
 
 ```yaml
 initContainers:
@@ -54,25 +54,25 @@ initContainers:
         mountPath: /ssl 
 ```
 
-We use an alpine based openssl container. We mount the `certs` volume which is our readOnly flexvolume with the our PKCS12 certificate from KeyVault. We need to convert and save the certificate: we write to the `ssl` volume. It is this same `ssl` volume that we will mount in the Traefik ingress container to provide the PEM certificate and the private key.  
+We use an alpine based openssl container. We mount the `certs` volume which is our readOnly flexvolume with our PKCS12 certificate from KeyVault. We need to convert and save the certificate: we write to the `ssl` volume. It is this same `ssl` volume that we will mount in the Traefik ingress container to provide the PEM certificate and the private key.  
 The first line of the `command` is reading the flexvolume certificate file, and decoding it from base64:
 
-```console
+```bash
 sh -c cat /certs/cert1 | base64 -d - > /ssl/certificate.pfx
 ```
 
-Converting the `PFX` to `PEM` :
+Converting the `PFX` to `PEM` :  
 
-```console
+```bash
 openssl pkcs12 -in /ssl/certificate.pfx -out /ssl/certificate.pem -nodes -passin pass:""
-```console
+```
 
 Note that we use a self-signed certificate with no password (`--passin pass:""`). This might be different in your setup. 
 The outputted `PEM` file contains both the public and private keys in clear. 
 
-The last part of the command is extracting the private key to a separate file :
+The last part of the command is extracting the private key to a separate file :  
 
-```console
+```bash
 openssl pkey -in /ssl/certificate.pem -out /ssl/certificate.key
 ```
 
