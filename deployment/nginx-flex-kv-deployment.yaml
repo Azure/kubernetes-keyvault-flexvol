@@ -1,0 +1,38 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: nginx-flexkv-deployment
+  labels:
+    app: nginx-flexkv
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-flexkv
+  template:
+    metadata:
+      labels:
+        app: nginx-flexkv
+    spec:
+      containers:
+      - name: nginx-flexkv
+        image: nginx
+        volumeMounts:
+        - name: test
+          mountPath: /kvmnt
+          readOnly: true
+      volumes:
+      - name: test
+        flexVolume:
+          driver: "azure/kv"
+          secretRef:
+            name: kvcreds
+          options: 
+            usepodidentity: "false"
+            keyvaultname: ""
+            keyvaultobjectnames: test1;test2    # list of KeyVault object names (semi-colon separated)
+            keyvaultobjecttypes: secret;secret  # list of KeyVault object types: secret, key or cert (semi-colon separated)
+            keyvaultobjectversions: ""     # [OPTIONAL] list of KeyVault object versions (semi-colon separated), will get latest if empty
+            resourcegroup: ""              # the resource group of the KeyVault
+            subscriptionid: ""             # the subscription ID of the KeyVault
+            tenantid: ""                   # the tenant ID of the KeyVault
