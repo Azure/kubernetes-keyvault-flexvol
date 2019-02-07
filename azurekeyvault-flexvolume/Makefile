@@ -1,12 +1,20 @@
 binary := azurekeyvault-flexvolume
-
-VERSION          := v0.0.4
+REGISTRY_NAME ?= upstreamk8sci
+REGISTRY ?= $(REGISTRY_NAME).azurecr.io
+DOCKER_IMAGE := $(REGISTRY)/public/k8s/flexvolume/keyvault-flexvolume
+VERSION          := v0.0.7
 
 .PHONY: build
 build: authors deps
 	@echo "Building..."
 	$Q GOOS=linux CGO_ENABLED=0 go build . 
 	$Q mv $(binary) ../deployment/flexvol-installer/
+
+image: build
+	@echo "Building docker image..."
+	$Q docker build -t $(DOCKER_IMAGE):$(VERSION) ../deployment/flexvol-installer
+push: image
+	$Q docker push $(DOCKER_IMAGE):$(VERSION)
 
 .PHONY: clean deps
 
