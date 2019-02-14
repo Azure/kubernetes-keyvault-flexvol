@@ -13,8 +13,6 @@ build: authors deps
 image: build
 	@echo "Building docker image..."
 	$Q docker build -t $(DOCKER_IMAGE):$(VERSION) ../deployment/flexvol-installer
-push: image
-	$Q docker push $(DOCKER_IMAGE):$(VERSION)
 
 .PHONY: clean deps
 
