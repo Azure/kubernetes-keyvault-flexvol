@@ -3,7 +3,7 @@
 DIR=$(dirname "$(readlink -f "$0")")
 JQ="/usr/bin/jq"
 LOG="/var/log/kv-driver.log"
-VER="0.0.7"
+VER="0.0.8"
 KVFV="${DIR}/azurekeyvault-flexvolume"
 
 usage() {
@@ -24,12 +24,13 @@ log() {
 	echo $* >&1
 }
 ismounted() {
-    count=`ls ${MNTPATH} | wc -l`
-	if [ $count -gt 0 ] ; then
-		echo "`date` ismounted | ${MNTPATH} exists" >>$LOG
+	MOUNT=`findmnt -n ${MNTPATH}`
+	if [ ! -z "$MOUNT" ]
+	then
+        echo "`date` ismounted | mounted" >> $LOG
 		echo "1"
 	else
-		echo "`date` ismounted | ${MNTPATH} does not exist" >>$LOG
+        echo "`date` ismounted | not mounted" >> $LOG
 		echo "0"
 	fi
 }
@@ -118,7 +119,7 @@ mount() {
 			exit 1
 		fi
 
-		echo "`date` CLIENTID: ${CLIENTID}" >>$LOG
+		echo "`date` CLIENTID: ${CLIENTID}" >> $LOG
 	else
 		if [ -z "${PODNAMESPACE}" ]; then
 			err "{\"status\": \"Failure\", \"message\": \"validation failed, pod.namespace is empty\"}"
@@ -130,7 +131,7 @@ mount() {
 			exit 1
 		fi
 
-		echo "`date` PODNAME: ${PODNAME}" >>$LOG
+		echo "`date` PODNAME: ${PODNAME}" >> $LOG
 	fi
 
 	# set default
@@ -138,17 +139,31 @@ mount() {
 		CLOUD_NAME=""
 	fi
 	
+	mkdir -p "${MNTPATH}" >> $LOG
+	if [ $? -ne 0 ]; then
+        errorLog=`tail -n 1 "${LOG}"`
+        err "{ \"status\": \"Failure\", \"message\": \"Failed to mkdir at ${MNTPATH}, error log:${errorLog}\" }"
+        exit 1
+    fi
 
-	echo "`date` EXEC: $KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectNames=${KEYVAULT_OBJECT_NAMES} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} -vaultObjectVersions=${KEYVAULT_OBJECT_VERSIONS} -vaultObjectTypes=${KEYVAULT_OBJECT_TYPES}" >> $LOG
-	$KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectNames=${KEYVAULT_OBJECT_NAMES} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} -vaultObjectVersions=${KEYVAULT_OBJECT_VERSIONS} -vaultObjectTypes=${KEYVAULT_OBJECT_TYPES} >>$LOG 2>&1
+	echo "`date` mount" >> $LOG
+	/bin/mount -t tmpfs tmpfs "${MNTPATH}" >> $LOG
+	if [ $? -ne 0 ]; then
+		errorLog=`tail -n 1 "${LOG}"`
+		err "{ \"status\": \"Failure\", \"message\": \"Failed to mount at ${MNTPATH}, error log:${errorLog}\" }"
+		exit 1
+	fi
+
+	echo "`date` $KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectNames=${KEYVAULT_OBJECT_NAMES} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} -vaultObjectVersions=${KEYVAULT_OBJECT_VERSIONS} -vaultObjectTypes=${KEYVAULT_OBJECT_TYPES}" >> $LOG
+	$KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectNames=${KEYVAULT_OBJECT_NAMES} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} -vaultObjectVersions=${KEYVAULT_OBJECT_VERSIONS} -vaultObjectTypes=${KEYVAULT_OBJECT_TYPES} >> $LOG
 	
 	if [ $? -ne 0 ] ; then
 		errorLog=`tail -n 1 "${LOG}"`
+		echo "`date` umount" >> $LOG
+		/bin/umount $MNTPATH >> $LOG
 		err "{\"status\": \"Failure\", \"message\": \"$KVFV failed, ${errorLog} \"}"
 		exit 1
 	else
-		echo "`date` EXEC: ls ${MNTPATH}" >> $LOG
-		ls ${MNTPATH} >>$LOG 2>&1
 		log "{\"status\": \"Success\"}"
 		exit 0
 	fi
@@ -161,8 +176,15 @@ unmount() {
 		log "{\"status\": \"Success\"}"
 		exit 0
 	fi
-	echo "`date` unmount ${MNTPATH}" >> $LOG
-	rm -rf ${MNTPATH} >>$LOG 2>&1
+	echo "`date` umount" >> $LOG
+	/bin/umount $MNTPATH >> $LOG
+	if [ $? -ne 0 ]; then
+		errorLog=`tail -n 1 "${LOG}"`
+		err "{ \"status\": \"Failure\", \"message\": \"Failed to unmount volume at ${MNTPATH}, error log:${errorLog}\" }"
+		exit 1
+	fi
+	echo "`date` rmdir" >> $LOG
+	rmdir ${MNTPATH} >> $LOG
 
 	log '{"status": "Success"}'
 	exit 0
