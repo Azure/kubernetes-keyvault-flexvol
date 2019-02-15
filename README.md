@@ -153,8 +153,23 @@ testvalue
 
 💡 Make sure you have installed pod identity to your Kubernetes cluster
 
-1. Deploy pod identity components to your cluster
-    Follow [these steps](https://github.com/Azure/aad-pod-identity#deploy-the-azure-aad-identity-infra) to install pod identity.
+   __This project makes use of the aad-pod-identity project located  [here](https://github.com/Azure/aad-pod-identity#deploy-the-azure-aad-identity-infra) to handle the identity management of the pods. Reference the aad-pod-identity README if you need further instructions on any of these steps.__
+
+Not all steps need to be followed on the instructions for the aad-pod-identity project as we will also complete some of the steps on our installation here.
+
+1. Install the aad-pod-identity components to your cluster
+     
+   - Install the RBAC enabled aad-pod-identiy infrastructure components:
+      ```
+      kubectl create -f https://raw.githubusercontent.com/Azure/aad-pod-identity/master/deploy/infra/deployment-rbac.yaml
+      ```
+
+   - (Optional) Providing required permissions for MIC
+
+     - If the SPN you are using for the AKS cluster was created separately (before the cluster creation - i.e. not part of the MC_ resource group) you will need to assign it the "Managed Identity Operator" role.
+       ```
+       az role assignment create --role "Managed Identity Operator" --assignee <sp id> --scope <full id of the managed identity>
+       ```
 
 2. Create an Azure User Identity 
 
