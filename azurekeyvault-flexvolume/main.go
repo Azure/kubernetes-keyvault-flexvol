@@ -67,14 +67,14 @@ type Option struct {
 }
 
 func main() {
-	context := context.Background()
+	ctx := context.Background()
 	options, err := parseConfigs()
 	if err != nil {
 		glog.Errorf("[error] : %s", err)
 		os.Exit(1)
 	}
 
-	adapter := &KeyvaultFlexvolumeAdapter{ctx: context, options: *options}
+	adapter := &KeyvaultFlexvolumeAdapter{ctx: ctx, options: *options}
 	err = adapter.Run()
 	if err != nil {
 		glog.Fatalf("[error] : %s", err)

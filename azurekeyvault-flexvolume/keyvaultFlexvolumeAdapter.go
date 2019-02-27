@@ -101,7 +101,9 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() error {
 
 func (adapter *KeyvaultFlexvolumeAdapter) initializeKvClient() (*kv.BaseClient, error) {
 	kvClient := kv.New()
-	kvClient.AddToUserAgent("k8s-keyvault-flexvol")
+	if err := kvClient.AddToUserAgent("k8s-keyvault-flexvol"); err != nil {
+		return nil, errors.Wrap(err, "failed to add user agent to keyvault client")
+	}
 	options := adapter.options
 
 	token, err := GetKeyvaultToken(AuthGrantType(), options.cloudName, options.tenantId, options.usePodIdentity, options.aADClientSecret, options.aADClientID, options.podName, options.podNamespace)
@@ -140,7 +142,7 @@ func (adapter *KeyvaultFlexvolumeAdapter) getVaultURL() (vaultUrl *string, err e
 		adapter.options.podName,
 		adapter.options.podNamespace)
 	if tokenErr != nil {
-		return nil, errors.Wrapf(err, "failed to get management token")
+		return nil, errors.Wrap(err, "failed to get management token")
 	}
 	vaultsClient.Authorizer = token
 	vault, err := vaultsClient.Get(adapter.ctx, adapter.options.resourceGroup, adapter.options.vaultName)
