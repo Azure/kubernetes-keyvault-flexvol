@@ -38,6 +38,8 @@ type Option struct {
 	vaultName string
 	// the name of the Azure Key Vault objects
 	vaultObjectNames string
+	// the filenames the objects will be written to
+	vaultObjectAliases string
 	// the versions of the Azure Key Vault objects
 	vaultObjectVersions string
 	// the types of the Azure Key Vault objects
@@ -87,6 +89,7 @@ func parseConfigs() (*Option, error) {
 	var options Option
 	flag.StringVar(&options.vaultName, "vaultName", "", "Name of Azure Key Vault instance.")
 	flag.StringVar(&options.vaultObjectNames, "vaultObjectNames", "", "Names of Azure Key Vault objects, semi-colon separated.")
+	flag.StringVar(&options.vaultObjectAliases, "vaultObjectAliases", "", "Filenames to write the Azure Key Vault objects to, semi-colon separated.")
 	flag.StringVar(&options.vaultObjectTypes, "vaultObjectTypes", "", "Types of Azure Key Vault objects, semi-colon separated.")
 	flag.StringVar(&options.vaultObjectVersions, "vaultObjectVersions", "", "Versions of Azure Key Vault objects, semi-colon separated.")
 	flag.StringVar(&options.resourceGroup, "resourceGroup", "", "Resource group name of Azure Key Vault.")
@@ -135,6 +138,11 @@ func Validate(options Option) error {
 	if strings.Count(options.vaultObjectNames, objectsSep) !=
 		strings.Count(options.vaultObjectTypes, objectsSep) {
 		return fmt.Errorf("-vaultObjectNames and -vaultObjectTypes do not have the same number of items")
+	}
+
+	if len(options.vaultObjectAliases) > 0 &&
+		(strings.Count(options.vaultObjectAliases, objectsSep) != strings.Count(options.vaultObjectAliases, objectsSep)) {
+		return fmt.Errorf("-vaultObjectNames and -vaultObjectAliases do not have the same number of items")
 	}
 
 	if options.usePodIdentity == false {
