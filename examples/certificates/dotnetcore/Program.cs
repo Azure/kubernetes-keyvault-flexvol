@@ -1,20 +1,22 @@
 ﻿
-namespace dotnetcore
+namespace dotnetcoreexamples
 {
     using System;
     using System.IO;
     using System.Security.Cryptography.X509Certificates;
+    using Microsoft.Extensions.Configuration;
 
     public class Program
     {
         public static void Main(string[] args)
         {
-            // Input parsing.
-            Console.WriteLine("Please enter the path to the KeyVault files or volume.");
-            string folderPath = Console.ReadLine();
+            SecretSettings settings = LoadConfig();
 
-            Console.WriteLine("Please enter the secret name.");
-            string secretName = Console.ReadLine();
+            Console.WriteLine($"Mount Path: {settings.KeyVaultVolMountPath}");
+            Console.WriteLine($"Secret Name: {settings.CertificateSecretName}");
+
+            string folderPath = settings.KeyVaultVolMountPath;
+            string secretName = settings.CertificateSecretName;
 
             string fullPath = Path.Combine(folderPath, secretName);
 
@@ -46,6 +48,19 @@ namespace dotnetcore
                 Console.WriteLine("Exception thrown while trying to read or parse the secret into a certificate.");
                 Console.WriteLine($"Message: {e.Message}");
             }
+        }
+
+        private static SecretSettings LoadConfig()
+        {
+            IConfigurationBuilder builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", false, true);
+
+            SecretSettings settings = new SecretSettings();
+
+            IConfigurationRoot root = builder.Build();
+
+            return root.GetSection("SecretSettings").Get<SecretSettings>();
         }
     }
 }

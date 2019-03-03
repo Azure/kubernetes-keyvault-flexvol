@@ -1,0 +1,17 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dotnetcoreexamples", "dotnetcoreexamples.csproj", "{4F392D88-0B03-4723-990D-0180845C329D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4F392D88-0B03-4723-990D-0180845C329D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4F392D88-0B03-4723-990D-0180845C329D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4F392D88-0B03-4723-990D-0180845C329D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4F392D88-0B03-4723-990D-0180845C329D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
