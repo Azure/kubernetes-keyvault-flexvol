@@ -1,8 +1,14 @@
 #.netcore Examples#
 
-These examples were ran using .net core version 2.2 as a way to read the certificate secrets and convert them into X509Certificate2 objects.
+These examples were ran using .net core version 2.2 as a way to read the certificate secrets and convert them into X509Certificate2 objects. You can run this example locally using .net core or by bundling this code into a pod alongside your K8s service.
 
-#How to run the examples:#
+#How to run the example alongside you Key Vault Flex Vol#
+1. Ensure that you have set up the managed identity for your K8s cluster.
+2. Apply the needed KeyVault FlexVol pod
+3. Create a service or container that mounts the Key Vault Flex Vol.
+4. Apply the .net core example pod to the environment.
+
+#How to build and run the example locally:#
 1. Download and install .netcore 2.2 SDK
 2. Clone the enlistment or copy the code.
 3. Build by running the command 'dotnet build'
