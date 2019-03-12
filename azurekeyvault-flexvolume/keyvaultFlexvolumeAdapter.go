@@ -60,12 +60,12 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() error {
 		objectName := objectNames[i]
 		// default to the objectName and override if aliases are available
 		fileName := path.Join(options.dir, objectNames[i])
-		if len(objectAliases) == len(objectNames) {
+		if options.vaultObjectAliases != "" && len(objectAliases) == len(objectNames) {
 			fileName = path.Join(options.dir, objectAliases[i])
 		}
 		// objectVersions are optional so we take as much as we can
 		objectVersion := ""
-		if len(objectVersions) == len(objectNames) {
+		if options.vaultObjectVersions != "" && len(objectVersions) == len(objectNames) {
 			objectVersion = objectVersions[i]
 		}
 		glog.V(0).Infof("retrieving %s %s (version: %s)", objectType, objectName, objectVersion)

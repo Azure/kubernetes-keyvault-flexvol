@@ -36,7 +36,7 @@ The following fields are expected to be part of Flex Vol
 5. KeyVault Object Type: `required`
 6. KeyVault Object Version: `optional` (`empty` == latest version)
 7. Use integrated identity. `optional` (Default `false` (mode #1), true (mode #2))
-8. Alias: `optional` by default keyvault objects are projected with their name, alias is to override the filename.
+8. KeyVault Object Alias: `optional` by default keyvault objects are projected with their name, alias is to override the filename.
 
 ##  Flows
 
