@@ -86,6 +86,7 @@ secretRef:
 |usepodidentity|no|specify access mode: service principal or pod identity|"false"|
 |keyvaultname|yes|name of KeyVault instance|""|
 |keyvaultobjectnames|yes|names of KeyVault objects to access|""|
+|keyvaultobjectaliases|no|filenames to use when writing the objects|keyvaultobjectnames|
 |keyvaultobjecttypes|yes|types of KeyVault objects: secret, key or cert|""|
 |keyvaultobjectversions|no|versions of KeyVault objects, if not provided, will use latest|""|
 |resourcegroup|yes|name of resource group containing key vault instance|""|
@@ -127,6 +128,7 @@ spec:
         usepodidentity: "false"
         keyvaultname: "testkeyvault"
         keyvaultobjectnames: "testsecret"
+        keyvaultobjectaliases: "secret.json" # optional
         keyvaultobjecttypes: secret # OPTIONS: secret, key, cert
         keyvaultobjectversions: "testversion"
         resourcegroup: "testresourcegroup"

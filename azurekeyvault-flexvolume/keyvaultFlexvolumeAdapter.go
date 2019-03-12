@@ -52,14 +52,20 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() error {
 
 	objectTypes := strings.Split(options.vaultObjectTypes, objectsSep)
 	objectNames := strings.Split(options.vaultObjectNames, objectsSep)
+	objectAliases := strings.Split(options.vaultObjectAliases, objectsSep)
 	objectVersions := strings.Split(options.vaultObjectVersions, objectsSep)
 
 	for i := range objectNames {
 		objectType := objectTypes[i]
 		objectName := objectNames[i]
+		// default to the objectName and override if aliases are available
+		fileName := path.Join(options.dir, objectNames[i])
+		if options.vaultObjectAliases != "" && len(objectAliases) == len(objectNames) {
+			fileName = path.Join(options.dir, objectAliases[i])
+		}
 		// objectVersions are optional so we take as much as we can
 		objectVersion := ""
-		if len(objectVersions) == len(objectNames) {
+		if options.vaultObjectVersions != "" && len(objectVersions) == len(objectNames) {
 			objectVersion = objectVersions[i]
 		}
 		glog.V(0).Infof("retrieving %s %s (version: %s)", objectType, objectName, objectVersion)
@@ -69,8 +75,8 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() error {
 			if err != nil {
 				return wrapObjectTypeError(err, objectType, objectName, objectVersion)
 			}
-			if err = writeContent([]byte(*secret.Value), objectType, objectName, options.dir); err != nil {
-				return err
+			if err = ioutil.WriteFile(fileName, []byte(*secret.Value), permission); err != nil {
+				return errors.Wrapf(err, "azure KeyVault failed to write secret %s to %s", objectName, fileName)
 			}
 		case VaultTypeKey:
 			keybundle, err := kvClient.GetKey(ctx, *vaultUrl, objectName, objectVersion)
@@ -78,22 +84,22 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() error {
 				return wrapObjectTypeError(err, objectType, objectName, objectVersion)
 			}
 			// NOTE: we are writing the RSA modulus content of the key
-			if err = writeContent([]byte(*keybundle.Key.N), objectType, objectName, options.dir); err != nil {
-				return err
+			if err = ioutil.WriteFile(fileName, []byte(*keybundle.Key.N), permission); err != nil {
+				return errors.Wrapf(err, "azure KeyVault failed to write key %s to %s", objectName, fileName)
 			}
 		case VaultTypeCertificate:
 			certbundle, err := kvClient.GetCertificate(ctx, *vaultUrl, objectName, objectVersion)
 			if err != nil {
 				return wrapObjectTypeError(err, objectType, objectName, objectVersion)
 			}
-			if err = writeContent(*certbundle.Cer, objectType, objectName, options.dir); err != nil {
-				return err
+			if err = ioutil.WriteFile(fileName, *certbundle.Cer, permission); err != nil {
+				return errors.Wrapf(err, "azure KeyVault failed to write certificate %s to %s", objectName, fileName)
 			}
 		default:
-			if err := errors.Errorf("Invalid vaultObjectTypes. Should be secret, key, or cert"); err != nil {
-				return wrapObjectTypeError(err, objectType, objectName, objectVersion)
-			}
+			err = errors.Errorf("Invalid vaultObjectTypes. Should be secret, key, or cert")
+			return wrapObjectTypeError(err, objectType, objectName, objectVersion)
 		}
+		glog.V(0).Infof("azure KeyVault wrote %s %s at %s", objectType, objectName, fileName)
 	}
 
 	return nil
@@ -101,7 +107,9 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() error {
 
 func (adapter *KeyvaultFlexvolumeAdapter) initializeKvClient() (*kv.BaseClient, error) {
 	kvClient := kv.New()
-	kvClient.AddToUserAgent("k8s-keyvault-flexvol")
+	if err := kvClient.AddToUserAgent("k8s-keyvault-flexvol"); err != nil {
+		return nil, errors.Wrap(err, "failed to add user agent to keyvault client")
+	}
 	options := adapter.options
 
 	token, err := GetKeyvaultToken(AuthGrantType(), options.cloudName, options.tenantId, options.usePodIdentity, options.aADClientSecret, options.aADClientID, options.podName, options.podNamespace)
@@ -115,14 +123,6 @@ func (adapter *KeyvaultFlexvolumeAdapter) initializeKvClient() (*kv.BaseClient, 
 
 func wrapObjectTypeError(err error, objectType string, objectName string, objectVersion string) error {
 	return errors.Wrapf(err, "failed to get objectType:%s, objetName:%s, objectVersion:%s", objectType, objectName, objectVersion)
-}
-
-func writeContent(objectContent []byte, objectType string, objectName string, dir string) error {
-	if err := ioutil.WriteFile(path.Join(dir, objectName), objectContent, permission); err != nil {
-		return errors.Wrapf(err, "azure KeyVault failed to write %s %s at %s", objectType, objectName, dir)
-	}
-	glog.V(0).Infof("azure KeyVault wrote %s %s at %s", objectType, objectName, dir)
-	return nil
 }
 
 func (adapter *KeyvaultFlexvolumeAdapter) getVaultURL() (vaultUrl *string, err error) {
@@ -140,7 +140,7 @@ func (adapter *KeyvaultFlexvolumeAdapter) getVaultURL() (vaultUrl *string, err e
 		adapter.options.podName,
 		adapter.options.podNamespace)
 	if tokenErr != nil {
-		return nil, errors.Wrapf(err, "failed to get management token")
+		return nil, errors.Wrap(err, "failed to get management token")
 	}
 	vaultsClient.Authorizer = token
 	vault, err := vaultsClient.Get(adapter.ctx, adapter.options.resourceGroup, adapter.options.vaultName)

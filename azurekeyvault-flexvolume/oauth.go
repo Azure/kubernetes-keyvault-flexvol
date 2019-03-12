@@ -6,16 +6,16 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
-	"io/ioutil"
 	"encoding/json"
+	"fmt"
+	"github.com/pkg/errors"
+	"net/http"
 	"regexp"
 
-	"github.com/golang/glog"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/golang/glog"
 )
 
 const (
@@ -85,13 +85,13 @@ func GetManagementToken(grantType OAuthGrantType, cloudName string, tenantId str
 	
 	env, err := ParseAzureEnvironment(cloudName)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to parse Azure environment")
 	}
 
 	rmEndPoint := env.ResourceManagerEndpoint
 	servicePrincipalToken, err := GetServicePrincipalToken(tenantId, env, rmEndPoint, usePodIdentity, aADClientSecret, aADClientID, podname, podns)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to get service principal token")
 	}
 	authorizer = autorest.NewBearerAuthorizer(servicePrincipalToken)
 	return authorizer, nil
@@ -102,7 +102,7 @@ func GetKeyvaultToken(grantType OAuthGrantType, cloudName string, tenantId strin
 	
 	env, err := ParseAzureEnvironment(cloudName)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to parse Azure environment")
 	}
 
 	kvEndPoint := env.KeyVaultEndpoint
@@ -111,7 +111,7 @@ func GetKeyvaultToken(grantType OAuthGrantType, cloudName string, tenantId strin
 	}
 	servicePrincipalToken, err := GetServicePrincipalToken(tenantId, env, kvEndPoint, usePodIdentity, aADClientSecret, aADClientID, podname, podns)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to get service principal token")
 	}
 	authorizer = autorest.NewBearerAuthorizer(servicePrincipalToken)
 	return authorizer, nil
@@ -123,7 +123,7 @@ func GetKeyvaultToken(grantType OAuthGrantType, cloudName string, tenantId strin
 func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource string, usePodIdentity bool, aADClientSecret string, aADClientID string, podname string, podns string) (*adal.ServicePrincipalToken, error) {
 	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, tenantId)
 	if err != nil {
-		return nil, fmt.Errorf("creating the OAuth config: %v", err)
+		return nil, errors.Wrap(err, "failed creating the OAuth config")
 	}
 
 	// For usepodidentity mode, the flexvolume driver makes an authorization request to fetch token for a resource from the NMI host endpoint (http://127.0.0.1:2579/host/token/). 
@@ -144,19 +144,18 @@ func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource 
 		req.Header.Add(podnameheader, podname)
 		resp, err := client.Do(req)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "failed to query NMI")
 		}
-		defer resp.Body.Close()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				fmt.Print("failed to close NMI response body")
+			}
+		}()
 
 		if resp.StatusCode == http.StatusOK {
-			bodyBytes, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				return nil, err
-			}
-			var nmiResp = new(NMIResponse)
-			err = json.Unmarshal(bodyBytes, &nmiResp)
-			if err != nil {
-				return nil, err
+			var nmiResp = NMIResponse{}
+			if err := json.NewDecoder(resp.Body).Decode(&nmiResp); err != nil {
+				return nil, errors.Wrap(err, "failed to decode NMI response")
 			}
 			
 			r, _ := regexp.Compile("^(\\S{4})(\\S|\\s)*(\\S{4})$")
@@ -172,13 +171,12 @@ func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource 
 		
 			spt, err := adal.NewServicePrincipalTokenFromManualToken(*oauthConfig, clientID, resource, token, nil)
 			if err != nil {
-				return nil, err
+				return nil, errors.Wrap(err, "failed to get new service principal token from manual token")
 			}
 			return spt, nil
 		}
-		
-		err = fmt.Errorf("nmi response failed with status code: %d", resp.StatusCode)
-		return nil, err
+
+		return nil, fmt.Errorf("nmi response failed with status code: %d", resp.StatusCode)
 	}
 	// When flexvolume driver is using a Service Principal clientid + client secret to retrieve token for resource
 	if len(aADClientSecret) > 0 {
@@ -190,17 +188,14 @@ func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource 
 			resource)
 	}
 
-	return nil, fmt.Errorf("No credentials provided for AAD application %s", aADClientID)
+	return nil, fmt.Errorf("no credentials provided for AAD application %s", aADClientID)
 }
 
 // ParseAzureEnvironment returns azure environment by name
 func ParseAzureEnvironment(cloudName string) (*azure.Environment, error) {
-	var env azure.Environment
-	var err error
 	if cloudName == "" {
-		env = azure.PublicCloud
-	} else {
-		env, err = azure.EnvironmentFromName(cloudName)
+		return &azure.PublicCloud, nil
 	}
-	return &env, err
+	env, err := azure.EnvironmentFromName(cloudName)
+	return &env, errors.Wrapf(err, "failed to get environment from cloudName: %s", cloudName)
 }
