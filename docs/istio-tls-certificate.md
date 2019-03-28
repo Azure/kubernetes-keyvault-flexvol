@@ -47,7 +47,7 @@ az keyvault key import -n myprivatekey --vault-name mykeyvault -f certificate-pr
 
 ## Configure the Istio Ingress Gateway
 
-From here on, configuration is manual. As of Istio 1.0.6, Istio does not yet support configuring the ingress gateway to support external Key Management Services. Refer to the [sample ingress-gateway](./istio-tls-certificate/istio-ingressgateway.yaml) for how to configure the ingressgateway. Let's break this sample down.
+From here on, configuration is manual. As of Istio 1.0.6, Istio does not yet support configuring the ingress gateway to support external Key Management Services. Refer to the [Istio 1.0.6 sample ingress-gateway](./istio-tls-certificate/istio-ingressgateway-1_0_6.yaml) for how to configure the ingressgateway. Let's break this sample down.
 
 To the ingress gateway, we add an extra read-only volume mount that refers to the `keyvault-certs` volume, which is mounted by the kubernetes-keyvault-flexvolume plugin:
 
