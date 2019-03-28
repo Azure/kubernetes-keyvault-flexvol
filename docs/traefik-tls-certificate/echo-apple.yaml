@@ -38,4 +38,3 @@ spec:
           backend:
             serviceName: apple-service
             servicePort: 5678
-
