@@ -1,0 +1,26 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: sample-gateway
+spec:
+  selector:
+    istio: ingressgateway # use istio default controller
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+    tls:
+      httpsRedirect: true # sends 301 redirect for http requests
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      serverCertificate: /etc/istio/keyvault-certs/mycertificate
+      privateKey: /etc/istio/keyvault-certs/myprivatekey
+    hosts:
+    - "*"
