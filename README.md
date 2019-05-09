@@ -265,7 +265,7 @@ Not all steps need to be followed on the instructions for the aad-pod-identity p
     testvalue
     ```
 
-**NOTE** When using the `Pod Identity` option mode, there can be some amount of delay in obtaining the objects from keyvault. During the pod creation time, in this particular mode `aad-pod-identity` will need to create the `AzureAssignedIdentity` for the pod based on the `AzureIdentity` and `AzureIdentityBinding`, retrieve token for keyvault. This proccess can take time to complete and it's possible for the pod volume mount to fail during this time. When the volume mount fails, kubelet will eventually keep retrying until it succeeds. So the volume mount will eventually succeed after the whole the process for retrieving the token is complete.
+**NOTE** When using the `Pod Identity` option mode, there can be some amount of delay in obtaining the objects from keyvault. During the pod creation time, in this particular mode `aad-pod-identity` will need to create the `AzureAssignedIdentity` for the pod based on the `AzureIdentity` and `AzureIdentityBinding`, retrieve token for keyvault. This proccess can take time to complete and it's possible for the pod volume mount to fail during this time. When the volume mount fails, kubelet will keep retrying until it succeeds. So the volume mount will eventually succeed after the whole process for retrieving the token is complete.
 
 ### Specific use cases ###
 
