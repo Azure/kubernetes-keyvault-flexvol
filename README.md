@@ -123,17 +123,17 @@ spec:
     flexVolume:
       driver: "azure/kv"
       secretRef:
-        name: kvcreds # mounting point to the pod
+        name: kvcreds                             # [OPTIONAL] not required if using Pod Identity
       options:
-        usepodidentity: "false"
-        keyvaultname: "testkeyvault"
-        keyvaultobjectnames: "testsecret"
-        keyvaultobjectaliases: "secret.json" # optional
-        keyvaultobjecttypes: secret # OPTIONS: secret, key, cert
-        keyvaultobjectversions: "testversion"
-        resourcegroup: "testresourcegroup"
-        subscriptionid: "testsub"
-        tenantid: "testtenant"
+        usepodidentity: "false"                   # [OPTIONAL] if not provided, will default to "false"
+        keyvaultname: "testkeyvault"              # [REQUIRED] the name of the KeyVault
+        keyvaultobjectnames: "testsecret"         # [REQUIRED] list of KeyVault object names (semi-colon separated)
+        keyvaultobjectaliases: "secret.json"      # [OPTIONAL] list of KeyVault object aliases
+        keyvaultobjecttypes: secret               # [REQUIRED] list of KeyVault object types: secret, key, cert
+        keyvaultobjectversions: "testversion"     # [OPTIONAL] list of KeyVault object versions (semi-colon separated), will get latest if empty
+        resourcegroup: "testresourcegroup"        # [REQUIRED] the resource group of the KeyVault
+        subscriptionid: "testsub"                 # [REQUIRED] the subscription ID of the KeyVault
+        tenantid: "testtenant"                    # [REQUIRED] the tenant ID of the KeyVault
 ```
 
 Deploy your app
@@ -160,7 +160,7 @@ testvalue
 Not all steps need to be followed on the instructions for the aad-pod-identity project as we will also complete some of the steps on our installation here.
 
 1. Install the aad-pod-identity components to your cluster
-     
+
    - Install the RBAC enabled aad-pod-identiy infrastructure components:
       ```
       kubectl create -f https://raw.githubusercontent.com/Azure/aad-pod-identity/master/deploy/infra/deployment-rbac.yaml
