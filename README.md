@@ -1,8 +1,8 @@
 # Kubernetes-KeyVault-FlexVolume #
 
-Key Vault FlexVolume for Kubernetes - Integrates Key Management Systems with Kubernetes via a FlexVolume.  
+Key Vault FlexVolume for Kubernetes - Integrates Key Management Systems with Kubernetes via a FlexVolume.
 
-With the Key Vault FlexVolume, developers can mount multiple secrets, keys, and certs stored in Key Management Systems into their pods as a volume. Once the Volume is attached, the data in it is mounted into the container's file system. 
+With the Key Vault FlexVolume, developers can mount multiple secrets, keys, and certs stored in Key Management Systems into their pods as a volume. Once the Volume is attached, the data in it is mounted into the container's file system.
 
 [![CircleCI](https://circleci.com/gh/Azure/kubernetes-keyvault-flexvol/tree/master.svg?style=svg)](https://circleci.com/gh/Azure/kubernetes-keyvault-flexvol/tree/master)
 
@@ -19,7 +19,7 @@ The detailed design of this solution:
 
 ## How to use ##
 
-### Prerequisites: ### 
+### Prerequisites: ###
 
 💡 Make sure you have a Kubernetes cluster
 
@@ -60,7 +60,7 @@ Add your service principal credentials as a Kubernetes secrets accessible by the
 kubectl create secret generic kvcreds --from-literal clientid=<CLIENTID> --from-literal clientsecret=<CLIENTSECRET> --type=azure/kv
 ```
 
-Ensure this service principal has all the required permissions to access content in your key vault instance. 
+Ensure this service principal has all the required permissions to access content in your key vault instance.
 If not, you can run the following using the Azure cli:
 
 ```bash
@@ -173,16 +173,16 @@ Not all steps need to be followed on the instructions for the aad-pod-identity p
        az role assignment create --role "Managed Identity Operator" --assignee <sp id> --scope <full id of the managed identity>
        ```
 
-2. Create an Azure User Identity 
+2. Create an Azure User Identity
 
-    Create an Azure User Identity with the following command. 
-    Get `clientId` and `id` from the output. 
+    Create an Azure User Identity with the following command.
+    Get `clientId` and `id` from the output.
     ```
     az identity create -g <resourcegroup> -n <idname>
     ```
 
 3. Assign permissions to new identity
-    Ensure your Azure user identity has all the required permissions to read the keyvault instance and to access content within your key vault instance. 
+    Ensure your Azure user identity has all the required permissions to read the keyvault instance and to access content within your key vault instance.
     If not, you can run the following using the Azure cli:
 
     ```bash
@@ -203,7 +203,7 @@ Not all steps need to be followed on the instructions for the aad-pod-identity p
 
     Set `type: 0` for Managed Service Identity; `type: 1` for Service Principal
     In this case, we are using managed service identity, `type: 0`.
-    Create a new name for the AzureIdentity. 
+    Create a new name for the AzureIdentity.
     Set `ResourceID` to `id` of the Azure User Identity created from the previous step.
 
     ```yaml
@@ -232,7 +232,7 @@ Not all steps need to be followed on the instructions for the aad-pod-identity p
     spec:
      AzureIdentity: <name_of_AzureIdentity_created_from_previous_step>
      Selector: <label value to match in your app>
-    ``` 
+    ```
 
     ```
     kubectl create -f aadpodidentitybinding.yaml
@@ -271,7 +271,7 @@ Not all steps need to be followed on the instructions for the aad-pod-identity p
 
 - [A detailed example for using a KeyVault certificate to setup an SSL entrypoint with Traefik](docs/traefik-tls-certificate.md)
 
-# About KeyVault 
+# About KeyVault
 
 The Key Vault FlexVolume interacts with keyvault objects by using the keyvault API. If you need to understand the difference between Keys, Secrets and Certificate objects, we recommend that you start by reading the thorough documentation available on Keyvault : [About keys, secrets, and certificates](https://docs.microsoft.com/en-us/azure/key-vault/about-keys-secrets-and-certificates)
 
@@ -284,17 +284,10 @@ As mentioned in the REST API docs [here](https://docs.microsoft.com/en-us/azure/
 * The AKV-key provides the private key of the X.509 certificate. It can be useful for performing cryptographic operations such as signing if the corresponding certificate was marked as non-exportable. Specifying `key` in `keyvaultobjecttypes` will fetch the private key of the certificate if its policy allows for private key exporting.
 * The AKV-secret provides a way to export the full X.509 certificate, including its private key (if its policy allows for private key exporting). Specifying `secret` in `keyvaultobjecttypes` will fetch the base64-encoded certificate bundle.
 
-
 # Contributing
 
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.microsoft.com.
+The Key Vault FlexVolume project welcomes contributions and suggestions. Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
-When you submit a pull request, a CLA-bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
+# Code of conduct
 
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information, see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
