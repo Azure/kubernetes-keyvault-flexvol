@@ -148,6 +148,9 @@ func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource 
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to query NMI")
 		}
+		if resp == nil {
+			return nil, fmt.Errorf("nmi response is nil")
+		}
 		defer func() {
 			if err := resp.Body.Close(); err != nil {
 				fmt.Print("failed to close NMI response body")
