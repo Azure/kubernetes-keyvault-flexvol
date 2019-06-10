@@ -14,7 +14,9 @@ assignees: ''
 **Expected behavior**
 
 **Key Vault FlexVolume version**
+
 **Access mode: service principal or pod identity**
+
 **Kubernetes version**
 
 **Additional context**
