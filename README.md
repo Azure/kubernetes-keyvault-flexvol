@@ -1,67 +1,76 @@
-# Kubernetes-KeyVault-FlexVolume #
+# Key Vault FlexVolume
 
-Key Vault FlexVolume for Kubernetes - Integrates Key Management Systems with Kubernetes via a FlexVolume.
+Seamlessly integrate your key management systems with Kubernetes.
 
-With the Key Vault FlexVolume, developers can mount multiple secrets, keys, and certs stored in Key Management Systems into their pods as a volume. Once the Volume is attached, the data in it is mounted into the container's file system.
+Secrets, keys, and certificates in a key management system become a volume accessible to pods. Once the volume is mounted, its data is available directly in the container filesystem for your application.
 
 [![CircleCI](https://circleci.com/gh/Azure/kubernetes-keyvault-flexvol/tree/master.svg?style=svg)](https://circleci.com/gh/Azure/kubernetes-keyvault-flexvol/tree/master)
 
-## Supported Providers
+## Contents
+
+* [Getting Started](#getting-started)
+* [Detailed Use Cases](#detailed-use-cases)
+* [Design](#design)
+* [About Key Vault](#about-key-vault)
+* [About Certificates](#about-certificates)
+* [Contributing](#contributing)
+* [Code of Conduct](#code-of-conduct)
+
+## Getting started
+
+### Supported Providers
+
 * Azure Key Vault
 
-> 💡 NOTE: To enable encryption at rest of Kubernetes data in etcd using Azure Key Vault, use [Kubernetes KMS plugin for Azure Key Vault](https://github.com/Azure/kubernetes-kms).
+  > 💡 **NOTE**: To enable encryption at rest of Kubernetes data in `etcd`, use the [Kubernetes KMS plugin] for Azure Key Vault.
 
-## Design
+### Installing Key Vault FlexVolume
 
-The detailed design of this solution:
+#### OPTION 1: New AKS Engine cluster
 
-- [Concept](/docs/concept.md)
+[AKS Engine] creates customized Kubernetes clusters on Azure.
 
-## How to use ##
+Follow the AKS Engine [add-on documentation] to create a new Kubernetes cluster with Key Vault FlexVolume already deployed.
 
-### Prerequisites: ###
+#### OPTION 2: Existing AKS cluster
 
-💡 Make sure you have a Kubernetes cluster
+Azure Kubernetes Service ([AKS]) creates managed, supported Kubernetes clusters on Azure.
 
-### Install the KeyVault Flexvolume ###
-
-#### OPTION 1 - AKS-Engine addon ####
-
-Follow [this](https://github.com/Azure/aks-engine/blob/master/examples/addons/keyvault-flexvolume/README.md) to use aks-engine to create a new Kubernetes cluster with the Key Vault FlexVolume already deployed.
-
-#### OPTION 2 - AKS (Azure Kubernetes Service) Manually ####
+Deploy Key Vault FlexVolume to your AKS cluster with this command:
 
 ```bash
-
 kubectl create -f https://raw.githubusercontent.com/Azure/kubernetes-keyvault-flexvol/master/deployment/kv-flexvol-installer.yaml
 ```
-To validate the installer is running as expected, run the following commands:
 
-```bash
-kubectl get pods -n kv
-```
+ To validate Key Vault FlexVolume is running as expected, run the following command:
 
-You should see the keyvault flexvolume installer pods running on each agent node:
+ ```bash
+ kubectl get pods -n kv
+ ```
 
-```bash
-keyvault-flexvolume-f7bx8   1/1       Running   0          3m
-keyvault-flexvolume-rcxbl   1/1       Running   0          3m
-keyvault-flexvolume-z6jm6   1/1       Running   0          3m
-```
-### Use the KeyVault FlexVolume ###
+ The output should show `keyvault-flexvolume` pods running on each agent node:
 
-The KeyVault FlexVolume offers two modes for accessing a Key Vault instance: Service Principal and Pod Identity.
+  ```bash
+  NAME                        READY     STATUS    RESTARTS   AGE
+  keyvault-flexvolume-f7bx8   1/1       Running   0          3m
+  keyvault-flexvolume-rcxbl   1/1       Running   0          3m
+  keyvault-flexvolume-z6jm6   1/1       Running   0          3m
+  ```
 
-#### OPTION 1 - Service Principal ####
+### Using Key Vault FlexVolume
 
-Add your service principal credentials as a Kubernetes secrets accessible by the KeyVault FlexVolume driver.
+Key Vault FlexVolume offers two modes for accessing a Key Vault instance: [Service Principal] and [Pod Identity].
+
+#### OPTION 1: Service Principal
+
+Add your service principal credentials as Kubernetes secrets accessible by the Key Vault FlexVolume driver.
 
 ```bash
 kubectl create secret generic kvcreds --from-literal clientid=<CLIENTID> --from-literal clientsecret=<CLIENTSECRET> --type=azure/kv
 ```
 
-Ensure this service principal has all the required permissions to access content in your key vault instance.
-If not, you can run the following using the Azure cli:
+Ensure this service principal has all the required permissions to access content in your Key Vault instance.
+If not, run the following [Azure CLI] commands:
 
 ```bash
 # Assign Reader Role to the service principal for your keyvault
@@ -72,222 +81,261 @@ az keyvault set-policy -n $KV_NAME --secret-permissions get --spn <YOUR SPN CLIE
 az keyvault set-policy -n $KV_NAME --certificate-permissions get --spn <YOUR SPN CLIENT ID>
 ```
 
-Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvault-flexvol/blob/master/deployment/nginx-flex-kv.yaml) deployment for your own deployment, make sure to:
+Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvault-flexvol/blob/master/deployment/nginx-flex-kv.yaml) deployment for your own deployment. Make sure to:
 
-1. reference the service principal kubernetes secret created in the previous step
-```yaml
-secretRef:
-  name: kvcreds
-```
-2. pass in properties for the Key Vault instance to the flexvolume driver.
-
-|Name|Required|Description|Default Value|
-|---|---|---|---|
-|usepodidentity|no|specify access mode: service principal or pod identity|"false"|
-|keyvaultname|yes|name of KeyVault instance|""|
-|keyvaultobjectnames|yes|names of KeyVault objects to access|""|
-|keyvaultobjectaliases|no|filenames to use when writing the objects|keyvaultobjectnames|
-|keyvaultobjecttypes|yes|types of KeyVault objects: secret, key or cert|""|
-|keyvaultobjectversions|no|versions of KeyVault objects, if not provided, will use latest|""|
-|resourcegroup|yes|name of resource group containing key vault instance|""|
-|subscriptionid|yes|name of subscription containing key vault instance|""|
-|tenantid|yes|name of tenant containing key vault instance|""|
-
-keyvaultobjectnames, keyvaultobjecttypes and keyvaultobjectversions are semi-colon (;) separated.
-
-3. Specify mount path of flexvolume to mount key vault objects
-```yaml
-volumeMounts:
-    - name: test
-      mountPath: /kvmnt
-      readOnly: true
-```
-
-Example of an nginx pod accessing a secret from a key vault instance:
-
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: nginx-flex-kv
-spec:
-  containers:
-  - name: nginx-flex-kv
-    image: nginx
-    volumeMounts:
-    - name: test
-      mountPath: /kvmnt
-      readOnly: true
-  volumes:
-  - name: test
-    flexVolume:
-      driver: "azure/kv"
-      secretRef:
-        name: kvcreds                             # [OPTIONAL] not required if using Pod Identity
-      options:
-        usepodidentity: "false"                   # [OPTIONAL] if not provided, will default to "false"
-        keyvaultname: "testkeyvault"              # [REQUIRED] the name of the KeyVault
-        keyvaultobjectnames: "testsecret"         # [REQUIRED] list of KeyVault object names (semi-colon separated)
-        keyvaultobjectaliases: "secret.json"      # [OPTIONAL] list of KeyVault object aliases
-        keyvaultobjecttypes: secret               # [REQUIRED] list of KeyVault object types: secret, key, cert
-        keyvaultobjectversions: "testversion"     # [OPTIONAL] list of KeyVault object versions (semi-colon separated), will get latest if empty
-        resourcegroup: "testresourcegroup"        # [REQUIRED] the resource group of the KeyVault
-        subscriptionid: "testsub"                 # [REQUIRED] the subscription ID of the KeyVault
-        tenantid: "testtenant"                    # [REQUIRED] the tenant ID of the KeyVault
-```
-
-Deploy your app
-
-```bash
-kubectl create -f deployment/nginx-flex-kv.yaml
-```
-
-Validate the pod has access to the secret from key vault:
-
-```bash
-kubectl exec -it nginx-flex-kv cat /kvmnt/testsecret
-testvalue
-```
-
-#### OPTION 2 - Pod identity ####
-
-##### Prerequisites: #####
-
-💡 Make sure you have installed pod identity to your Kubernetes cluster
-
-   __This project makes use of the aad-pod-identity project located  [here](https://github.com/Azure/aad-pod-identity#deploy-the-azure-aad-identity-infra) to handle the identity management of the pods. Reference the aad-pod-identity README if you need further instructions on any of these steps.__
-
-Not all steps need to be followed on the instructions for the aad-pod-identity project as we will also complete some of the steps on our installation here.
-
-1. Install the aad-pod-identity components to your cluster
-
-   - Install the RBAC enabled aad-pod-identiy infrastructure components:
-      ```
-      kubectl create -f https://raw.githubusercontent.com/Azure/aad-pod-identity/master/deploy/infra/deployment-rbac.yaml
-      ```
-
-   - (Optional) Providing required permissions for MIC
-
-     - If the SPN you are using for the AKS cluster was created separately (before the cluster creation - i.e. not part of the MC_ resource group) you will need to assign it the "Managed Identity Operator" role.
-       ```
-       az role assignment create --role "Managed Identity Operator" --assignee <sp id> --scope <full id of the managed identity>
-       ```
-
-2. Create an Azure User Identity
-
-    Create an Azure User Identity with the following command.
-    Get `clientId` and `id` from the output.
-    ```
-    az identity create -g <resourcegroup> -n <idname>
-    ```
-
-3. Assign permissions to new identity
-    Ensure your Azure user identity has all the required permissions to read the keyvault instance and to access content within your key vault instance.
-    If not, you can run the following using the Azure cli:
-
-    ```bash
-    # Assign Reader Role to new Identity for your keyvault
-    az role assignment create --role Reader --assignee <principalid> --scope /subscriptions/<subscriptionid>/resourcegroups/<resourcegroup>/providers/Microsoft.KeyVault/vaults/<keyvaultname>
-
-    # set policy to access keys in your keyvault
-    az keyvault set-policy -n $KV_NAME --key-permissions get --spn <YOUR AZURE USER IDENTITY CLIENT ID>
-    # set policy to access secrets in your keyvault
-    az keyvault set-policy -n $KV_NAME --secret-permissions get --spn <YOUR AZURE USER IDENTITY CLIENT ID>
-    # set policy to access certs in your keyvault
-    az keyvault set-policy -n $KV_NAME --certificate-permissions get --spn <YOUR AZURE USER IDENTITY CLIENT ID>
-    ```
-
-4. Add a new `AzureIdentity` for the new identity to your cluster
-
-    Edit and save this as `aadpodidentity.yaml`
-
-    Set `type: 0` for Managed Service Identity; `type: 1` for Service Principal
-    In this case, we are using managed service identity, `type: 0`.
-    Create a new name for the AzureIdentity.
-    Set `ResourceID` to `id` of the Azure User Identity created from the previous step.
+1. Reference the service principal Kubernetes secret created in the previous step
 
     ```yaml
-    apiVersion: "aadpodidentity.k8s.io/v1"
-    kind: AzureIdentity
-    metadata:
-     name: <any-name>
-    spec:
-     type: 0
-     ResourceID: /subscriptions/<subid>/resourcegroups/<resourcegroup>/providers/Microsoft.ManagedIdentity/userAssignedIdentities/<idname>
-     ClientID: <clientid>
+    secretRef:
+      name: kvcreds
     ```
+
+2. Pass in properties for the Key Vault instance to the FlexVolume driver.
+
+    |Name|Required|Description|Default Value|
+    |---|---|---|---|
+    |usepodidentity|no|specify access mode: service principal or pod identity|"false"|
+    |keyvaultname|yes|name of Key Vault instance|""|
+    |keyvaultobjectnames|yes|names of Key Vault objects to access|""|
+    |keyvaultobjectaliases|no|filenames to use when writing the objects|keyvaultobjectnames|
+    |keyvaultobjecttypes|yes|types of Key Vault objects: secret, key or cert|""|
+    |keyvaultobjectversions|no|versions of Key Vault objects, if not provided, will use latest|""|
+    |resourcegroup|yes|name of resource group containing Key Vault instance|""|
+    |subscriptionid|yes|name of subscription containing Key Vault instance|""|
+    |tenantid|yes|name of tenant containing Key Vault instance|""|
+
+    Multiple values in the `keyvaultobjectnames`, `keyvaultobjecttypes` and `keyvaultobjectversions` properties should be separated with semicolons (`;`).
+
+3. Specify mount path of flexvolume to mount key vault objects
+
+    ```yaml
+    volumeMounts:
+       - name: test
+          mountPath: /kvmnt
+          readOnly: true
+    ```
+
+    Example of an nginx pod accessing a secret from a Key Vault instance:
+
+    ```yaml
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: nginx-flex-kv
+   spec:
+      containers:
+      - name: nginx-flex-kv
+        image: nginx
+        volumeMounts:
+        - name: test
+          mountPath: /kvmnt
+          readOnly: true
+      volumes:
+      - name: test
+        flexVolume:
+          driver: "azure/kv"
+          secretRef:
+            name: kvcreds                             # [OPTIONAL] not required if using Pod Identity
+          options:
+            usepodidentity: "false"                   # [OPTIONAL] if not provided, will default to "false"
+            keyvaultname: "testkeyvault"              # [REQUIRED] the name of the KeyVault
+            keyvaultobjectnames: "testsecret"         # [REQUIRED] list of KeyVault object names (semi-colon separated)
+            keyvaultobjectaliases: "secret.json"      # [OPTIONAL] list of KeyVault object aliases
+            keyvaultobjecttypes: secret               # [REQUIRED] list of KeyVault object types: secret, key, cert
+            keyvaultobjectversions: "testversion"     # [OPTIONAL] list of KeyVault object versions (semi-colon separated), will get latest if empty
+            resourcegroup: "testresourcegroup"        # [REQUIRED] the resource group of the KeyVault
+            subscriptionid: "testsub"                 # [REQUIRED] the subscription ID of the KeyVault
+            tenantid: "testtenant"                    # [REQUIRED] the tenant ID of the KeyVault
+    ```
+
+    Deploy your app
 
     ```bash
-    kubectl create -f aadpodidentity.yaml
+    kubectl create -f deployment/nginx-flex-kv.yaml
     ```
 
-5. Add a new `AzureIdentityBinding` for the new Azure identity to your cluster
+    Validate the pod has access to the secret from key vault:
 
-    Edit and save this as `aadpodidentitybinding.yaml`
+    ```bash
+    kubectl exec -it nginx-flex-kv cat /kvmnt/testsecret
+    testvalue
+    ```
+
+#### OPTION 2: Pod identity
+
+💡 The basic steps to configure [AAD Pod Identity] are reproduced here, but please refer to that project's [README][aad-pod-id-README] for more detail.
+
+1. Install AAD Pod Identity
+
+   Run this command to create the `aad-pod-identity` deployment on an RBAC-enabled cluster:
+
+   ```shell
+   kubectl apply -f https://raw.githubusercontent.com/Azure/aad-pod-identity/master/deploy/infra/deployment-rbac.yaml
+   ```
+
+2. Assign SPN Role
+
+   If the Service Principal used for the cluster was created separately (not automatically, as part of an AKS cluster's `MC_` resource group), assign it the "Managed Identity Operator" role:
+
+   ```bash
+   az role assignment create --role "Managed Identity Operator" --assignee <sp id> --scope <full id of the managed identity>
+   ```
+
+3. Create an Azure Identity
+
+   Run this [Azure CLI] command, and take note of the `clientId` and `id` values it returns:
+
+   ```shell
+   az identity create -g <resourcegroup> -n <name> -o json
+   ```
+
+4. Assign Azure Identity Roles
+
+   Ensure that your Azure Identity has the role assignments required to see your Key Vault instance and to access its content. Run the following Azure CLI commands to assign these roles if needed:
+
+   ```bash
+   # Assign Reader Role to new Identity for your Key Vault
+   az role assignment create --role Reader --assignee <principalid> --scope /subscriptions/<subscriptionid>/resourcegroups/<resourcegroup>/providers/Microsoft.KeyVault/vaults/<keyvaultname>
+
+   # set policy to access keys in your Key Vault
+   az keyvault set-policy -n $KV_NAME --key-permissions get --spn <YOUR AZURE USER IDENTITY CLIENT ID>
+   # set policy to access secrets in your Key Vault
+   az keyvault set-policy -n $KV_NAME --secret-permissions get --spn <YOUR AZURE USER IDENTITY CLIENT ID>
+   # set policy to access certs in your Key Vault
+   az keyvault set-policy -n $KV_NAME --certificate-permissions get --spn <YOUR AZURE USER IDENTITY CLIENT ID>
+   ```
+
+5. Install the Azure Identity
+
+   Save this Kubernetes manifest to a file named `aadpodidentity.yaml`:
+
+   ```yaml
+   apiVersion: "aadpodidentity.k8s.io/v1"
+   kind: AzureIdentity
+   metadata:
+     name: <a-idname>
+   spec:
+     type: 0
+     ResourceID: /subscriptions/<subid>/resourcegroups/<resourcegroup>/providers/Microsoft.ManagedIdentity/userAssignedIdentities/<name>
+     ClientID: <clientId>
+   ```
+
+   Replace the placeholders with your user identity values. Set `type: 0` for user-assigned MSI.
+
+   Finally, save your changes to the file, then create the `AzureIdentity` resource in your cluster:
+
+   ```shell
+   kubectl apply -f aadpodidentity.yaml
+   ```
+
+6. Install the Azure Identity Binding
+
+    Save this Kubernetes manifest to a file named `aadpodidentitybinding.yaml`:
+
     ```yaml
     apiVersion: "aadpodidentity.k8s.io/v1"
     kind: AzureIdentityBinding
     metadata:
-     name: demo1-azure-identity-binding
+      name: demo1-azure-identity-binding
     spec:
-     AzureIdentity: <name_of_AzureIdentity_created_from_previous_step>
-     Selector: <label value to match in your app>
+      AzureIdentity: <a-idname>
+      Selector: <label value to match>
     ```
 
-    ```
-    kubectl create -f aadpodidentitybinding.yaml
-    ```
+   Replace the placeholders with your values. Ensure that the `AzureIdentity` name matches the one in `aadpodidentity.yaml`.
 
-6. Add the following to your deployment yaml, like [deployment/nginx-flex-kv-podidentity.yaml](https://github.com/Azure/kubernetes-keyvault-flexvol/blob/master/deployment/nginx-flex-kv-podidentity.yaml):
+   Finally, save your changes to the file, then create the `AzureIdentityBinding` resource in your cluster:
 
-    a. Include the `aadpodidbinding` label matching the `Selector` value set in the previous step so that this pod will be assigned an identity
+   ```shell
+   kubectl apply -f aadpodidentitybinding.yaml
+   ```
+
+7. Update the Application Deployment
+
+    Your application manifest needs a couple of changes. Refer to the [nginx-flex-kv-podid] deployment as an example.
+
+    a. Include the `aadpodidbinding` label to match the `Selector` value from the previous step:
+
     ```yaml
     metadata:
     labels:
         aadpodidbinding: "NAME OF the AzureIdentityBinding SELECTOR"
     ```
 
-    b. make sure to update `usepodidentity` to `true`
+    b. Set `usepodidentity` to `true`:
+
     ```yaml
     usepodidentity: "true"
     ```
 
-7. Deploy your app
+8. Deploy your app
 
     ```bash
     kubectl create -f deployment/nginx-flex-kv-podidentity.yaml
     ```
 
-8. Validate the pod has access to the secret from key vault:
+9. Validate the pod can access the secret from Key Vault:
 
     ```bash
     kubectl exec -it nginx-flex-kv-podid cat /kvmnt/testsecret
     testvalue
     ```
 
-**NOTE** When using the `Pod Identity` option mode, there can be some amount of delay in obtaining the objects from keyvault. During the pod creation time, in this particular mode `aad-pod-identity` will need to create the `AzureAssignedIdentity` for the pod based on the `AzureIdentity` and `AzureIdentityBinding`, retrieve token for keyvault. This proccess can take time to complete and it's possible for the pod volume mount to fail during this time. When the volume mount fails, kubelet will keep retrying until it succeeds. So the volume mount will eventually succeed after the whole process for retrieving the token is complete.
+    > **NOTE**: When using the `Pod Identity` option mode, there may be some delay in obtaining the objects from Key Vault. During pod creation time, AAD Pod Identity needs to create the `AzureAssignedIdentity` for the pod based on the `AzureIdentity` and `AzureIdentityBinding` and retrieve the token for Key Vault. It is possible for the pod volume mount to fail during this time. If it does, the kubelet will keep retrying until after the token retrieval is complete and the mount succeeds.
 
-### Specific use cases ###
+## Detailed use cases
 
-- [A detailed example for using a KeyVault certificate to setup an SSL entrypoint with Traefik](docs/traefik-tls-certificate.md)
+* Use Key Vault FlexVol to set up an [SSL entrypoint with Istio]
+* Use Key Vault FlexVol to set up an [SSL entrypoint with Traefik]
 
-# About KeyVault
+## Design
 
-The Key Vault FlexVolume interacts with keyvault objects by using the keyvault API. If you need to understand the difference between Keys, Secrets and Certificate objects, we recommend that you start by reading the thorough documentation available on Keyvault : [About keys, secrets, and certificates](https://docs.microsoft.com/en-us/azure/key-vault/about-keys-secrets-and-certificates)
+To learn more about the design of Key Vault FlexVolume, see [Concept].
 
-## More about Certificates
+## About Key Vault
 
-It is important to understand how a certificate is structured in keyvault.
-As mentioned in the REST API docs [here](https://docs.microsoft.com/en-us/azure/key-vault/certificate-scenarios#certificates-are-complex-objects) and [here](https://docs.microsoft.com/en-us/azure/key-vault/about-keys-secrets-and-certificates#composition-of-a-certificate), Azure Key Vault (AKV) represents a given X.509 certificate via three interrelated resources: an AKV-certificate, an AKV-key, and an AKV-secret. All three will share the same name and the same version and can be fetched independently.
+Key Vault FlexVolume interacts with Key Vault objects by using the [Key Vault API].
+
+Azure Key Vault has thorough documentation available to help clarify the difference between [keys, secrets, and certificates].
+
+## About Certificates
+
+It is important to understand how a certificate is structured in Key Vault.
+
+As mentioned in [Certificates are complex objects] and [Composition of a Certificate], Azure Key Vault (AKV) represents an X.509 certificate as three related resources:
+
+* an AKV-certificate
+* an AKV-key
+* an AKV-secret
+
+All three will share the same name and the same version and can be fetched independently.
 
 * The AKV-certificate provides the public key and certificate metadata. Specifying `cert` in `keyvaultobjecttypes` will fetch the public key and certificate metadata.
 * The AKV-key provides the private key of the X.509 certificate. It can be useful for performing cryptographic operations such as signing if the corresponding certificate was marked as non-exportable. Specifying `key` in `keyvaultobjecttypes` will fetch the private key of the certificate if its policy allows for private key exporting.
 * The AKV-secret provides a way to export the full X.509 certificate, including its private key (if its policy allows for private key exporting). Specifying `secret` in `keyvaultobjecttypes` will fetch the base64-encoded certificate bundle.
 
-# Contributing
+## Contributing
 
 The Key Vault FlexVolume project welcomes contributions and suggestions. Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
-# Code of conduct
+## Code of conduct
 
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information, see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+
+[AAD Pod Identity]: https://github.com/Azure/aad-pod-identity
+[aad-pod-id-README]: https://github.com/Azure/aad-pod-identity#readme
+[add-on documentation]: https://github.com/Azure/aks-engine/blob/master/examples/addons/keyvault-flexvolume/README.md
+[AKS]: https://azure.microsoft.com/services/kubernetes-service/
+[AKS Engine]: https://github.com/Azure/aks-engine
+[Azure CLI]: https://docs.microsoft.com/cli/azure/install-azure-cli
+[Certificates are complex objects]: https://docs.microsoft.com/azure/key-vault/certificate-scenarios#certificates-are-complex-objects
+[Composition of a Certificate]: https://docs.microsoft.com/azure/key-vault/about-keys-secrets-and-certificates#composition-of-a-certificate
+[Concept]: /docs/concept.md
+[keys, secrets, and certificates]: https://docs.microsoft.com/azure/key-vault/about-keys-secrets-and-certificates
+[Key Vault API]: https://docs.microsoft.com/rest/api/keyvault/
+[Kubernetes KMS plugin]: https://github.com/Azure/kubernetes-kms
+[nginx-flex-kv-podid]: https://github.com/Azure/kubernetes-keyvault-flexvol/blob/master/deployment/nginx-flex-kv-podidentity.yaml
+[Pod Identity]: #option-2-pod-identity
+[Service Principal]: #option-1-service-principal
+[SSL entrypoint with Istio]: docs/istio-tls-certificate.md
+[SSL entrypoint with Traefik]: docs/traefik-tls-certificate.md
