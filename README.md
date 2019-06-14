@@ -281,7 +281,7 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
     testvalue
     ```
 
-    > **NOTE**: When using the `Pod Identity` option mode, there may be some delay in obtaining the objects from Key Vault. During pod creation time, AAD Pod Identity needs to create the `AzureAssignedIdentity` for the pod based on the `AzureIdentity` and `AzureIdentityBinding` and retrieve the token for Key Vault. It is possible for the pod volume mount to fail during this time. If it does, the kubelet will keep retrying until after the token retrieval is complete and the mount succeeds.
+  > **NOTE**: When using the `Pod Identity` option mode, there may be some delay in obtaining the objects from Key Vault. During pod creation time, AAD Pod Identity needs to create the `AzureAssignedIdentity` for the pod based on the `AzureIdentity` and `AzureIdentityBinding` and retrieve the token for Key Vault. It is possible for the pod volume mount to fail during this time. If it does, the kubelet will keep retrying until after the token retrieval is complete and the mount succeeds.
 
 ## Detailed use cases
 
