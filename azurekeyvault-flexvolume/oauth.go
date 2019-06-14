@@ -8,7 +8,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"math"
 	"net/http"
 	"regexp"
 	"time"
@@ -198,32 +197,27 @@ func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource 
 
 func retryFetchToken(req *http.Request, maxAttempts int) (resp *http.Response, err error) {
 	attempt := 0
-	delay := time.Duration(0)
+	// Not using exponential backoff logic because the avg time taken by nmi to complete
+	// identity assignment is ~35s. With exponential backoff we might end up waiting
+	// longer than required. Kubelet poll interval is 300ms which is aggressive and results in
+	// a lot of failed volume mount events. This retry will reduce the number of events in the
+	// case when nmi takes longer than usual.
+	delay := time.Duration(7 * time.Second)
 	client := &http.Client{}
-	const maxDelay time.Duration = 60 * time.Second
-
-	// retry guidance as suggested here - https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/how-to-use-vm-token#retry-guidance
 	for attempt < maxAttempts {
 		resp, err = client.Do(req)
-
-		if err != nil || resp == nil || resp.StatusCode == http.StatusOK {
+		if err != nil || resp != nil && resp.StatusCode == http.StatusOK {
 			return
 		}
 
-		// increment attempt
 		attempt++
-
-		delay += (time.Duration(math.Pow(2, float64(attempt))) * time.Second)
-		if delay > maxDelay {
-			delay = maxDelay
-		}
 
 		select {
 		case <-time.After(delay):
 		case <-req.Context().Done():
 			// request is cancelled
 			err = req.Context().Err()
-			return
+			return nil, err
 		}
 	}
 	return
