@@ -206,7 +206,10 @@ func retryFetchToken(req *http.Request, maxAttempts int) (resp *http.Response, e
 	client := &http.Client{}
 	for attempt < maxAttempts {
 		resp, err = client.Do(req)
-		if err != nil || resp != nil && resp.StatusCode == http.StatusOK {
+
+		// pod-identity calls will be retried in every scenario except when the err is nil
+		// and we get 200 response code.
+		if err == nil && resp != nil && resp.StatusCode == http.StatusOK {
 			return
 		}
 
