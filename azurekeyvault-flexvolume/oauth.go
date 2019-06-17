@@ -21,9 +21,11 @@ import (
 )
 
 const (
-	nmiendpoint   = "http://localhost:2579/host/token/"
-	podnameheader = "podname"
-	podnsheader   = "podns"
+	nmiendpoint                 = "http://localhost:2579/host/token/"
+	podnameheader               = "podname"
+	podnsheader                 = "podns"
+	podIdentityRetryDelay       = time.Duration(7 * time.Second)
+	podIdentityRetryMaxAttempts = 5
 )
 
 var (
@@ -143,7 +145,7 @@ func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource 
 		req.Header.Add(podnsheader, podns)
 		req.Header.Add(podnameheader, podname)
 
-		resp, err := retryFetchToken(req, 5)
+		resp, err := retryFetchToken(req, podIdentityRetryMaxAttempts)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to query NMI")
 		}
@@ -197,12 +199,7 @@ func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource 
 
 func retryFetchToken(req *http.Request, maxAttempts int) (resp *http.Response, err error) {
 	attempt := 0
-	// Not using exponential backoff logic because the avg time taken by nmi to complete
-	// identity assignment is ~35s. With exponential backoff we might end up waiting
-	// longer than required. Kubelet poll interval is 300ms which is aggressive and results in
-	// a lot of failed volume mount events. This retry will reduce the number of events in the
-	// case when nmi takes longer than usual.
-	delay := time.Duration(7 * time.Second)
+
 	client := &http.Client{}
 	for attempt < maxAttempts {
 		resp, err = client.Do(req)
@@ -216,7 +213,12 @@ func retryFetchToken(req *http.Request, maxAttempts int) (resp *http.Response, e
 		attempt++
 
 		select {
-		case <-time.After(delay):
+		// Not using exponential backoff logic because the avg time taken by nmi to complete
+		// identity assignment is ~35s. With exponential backoff we might end up waiting
+		// longer than required. Kubelet poll interval is 300ms which is aggressive and results in
+		// a lot of failed volume mount events. This retry will reduce the number of events in the
+		// case when nmi takes longer than usual.
+		case <-time.After(podIdentityRetryDelay):
 		case <-req.Context().Done():
 			// request is cancelled
 			err = req.Context().Err()
