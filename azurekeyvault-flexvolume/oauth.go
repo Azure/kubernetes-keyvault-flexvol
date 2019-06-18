@@ -8,9 +8,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
 	"net/http"
 	"regexp"
+	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/adal"
@@ -19,13 +21,15 @@ import (
 )
 
 const (
-	nmiendpoint         = "http://localhost:2579/host/token/"
-	podnameheader       = "podname"
-	podnsheader         = "podns"
+	nmiendpoint                 = "http://localhost:2579/host/token/"
+	podnameheader               = "podname"
+	podnsheader                 = "podns"
+	podIdentityRetryDelay       = time.Duration(7 * time.Second)
+	podIdentityRetryMaxAttempts = 5
 )
 
 var (
-	oauthConfig	*adal.OAuthConfig
+	oauthConfig *adal.OAuthConfig
 )
 
 // OAuthGrantType specifies which grant type to use.
@@ -77,12 +81,12 @@ func AuthGrantType() OAuthGrantType {
 }
 
 type NMIResponse struct {
-    Token adal.Token `json:"token"`
-    ClientID string `json:"clientid"`
+	Token    adal.Token `json:"token"`
+	ClientID string     `json:"clientid"`
 }
 
 func GetManagementToken(grantType OAuthGrantType, cloudName string, tenantId string, usePodIdentity bool, aADClientSecret string, aADClientID string, podname string, podns string) (authorizer autorest.Authorizer, err error) {
-	
+
 	env, err := ParseAzureEnvironment(cloudName)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse Azure environment")
@@ -99,7 +103,7 @@ func GetManagementToken(grantType OAuthGrantType, cloudName string, tenantId str
 }
 
 func GetKeyvaultToken(grantType OAuthGrantType, cloudName string, tenantId string, usePodIdentity bool, aADClientSecret string, aADClientID string, podname string, podns string) (authorizer autorest.Authorizer, err error) {
-	
+
 	env, err := ParseAzureEnvironment(cloudName)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse Azure environment")
@@ -115,7 +119,6 @@ func GetKeyvaultToken(grantType OAuthGrantType, cloudName string, tenantId strin
 	}
 	authorizer = autorest.NewBearerAuthorizer(servicePrincipalToken)
 	return authorizer, nil
-	
 
 }
 
@@ -126,25 +129,28 @@ func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource 
 		return nil, errors.Wrap(err, "failed creating the OAuth config")
 	}
 
-	// For usepodidentity mode, the flexvolume driver makes an authorization request to fetch token for a resource from the NMI host endpoint (http://127.0.0.1:2579/host/token/). 
-	// The request includes the pod namespace `podns` and the pod name `podname` in the request header and the resource endpoint of the resource requesting the token. 
-	// The NMI server identifies the pod based on the `podns` and `podname` in the request header and then queries k8s (through MIC) for a matching azure identity.  
+	// For usepodidentity mode, the flexvolume driver makes an authorization request to fetch token for a resource from the NMI host endpoint (http://127.0.0.1:2579/host/token/).
+	// The request includes the pod namespace `podns` and the pod name `podname` in the request header and the resource endpoint of the resource requesting the token.
+	// The NMI server identifies the pod based on the `podns` and `podname` in the request header and then queries k8s (through MIC) for a matching azure identity.
 	// Then nmi makes an adal request to get a token for the resource in the request, returns the `token` and the `clientid` as a reponse to the flexvolume request.
 
 	if usePodIdentity {
 		glog.V(0).Infoln("azure: using pod identity to retrieve token")
-		
+
 		endpoint := fmt.Sprintf("%s?resource=%s", nmiendpoint, resource)
-		client := &http.Client{}
 		req, err := http.NewRequest("GET", endpoint, nil)
 		if err != nil {
 			return nil, err
 		}
 		req.Header.Add(podnsheader, podns)
 		req.Header.Add(podnameheader, podname)
-		resp, err := client.Do(req)
+
+		resp, err := retryFetchToken(req, podIdentityRetryMaxAttempts)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to query NMI")
+		}
+		if resp == nil {
+			return nil, fmt.Errorf("nmi response is nil")
 		}
 		defer func() {
 			if err := resp.Body.Close(); err != nil {
@@ -157,7 +163,7 @@ func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource 
 			if err := json.NewDecoder(resp.Body).Decode(&nmiResp); err != nil {
 				return nil, errors.Wrap(err, "failed to decode NMI response")
 			}
-			
+
 			r, _ := regexp.Compile("^(\\S{4})(\\S|\\s)*(\\S{4})$")
 			fmt.Printf("\n accesstoken: %s\n", r.ReplaceAllString(nmiResp.Token.AccessToken, "$1##### REDACTED #####$3"))
 			fmt.Printf("\n clientid: %s\n", r.ReplaceAllString(nmiResp.ClientID, "$1##### REDACTED #####$3"))
@@ -168,7 +174,7 @@ func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource 
 			if &token == nil || clientID == "" {
 				return nil, fmt.Errorf("nmi did not return expected values in response: token and clientid")
 			}
-		
+
 			spt, err := adal.NewServicePrincipalTokenFromManualToken(*oauthConfig, clientID, resource, token, nil)
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to get new service principal token from manual token")
@@ -189,6 +195,37 @@ func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource 
 	}
 
 	return nil, fmt.Errorf("no credentials provided for AAD application %s", aADClientID)
+}
+
+func retryFetchToken(req *http.Request, maxAttempts int) (resp *http.Response, err error) {
+	attempt := 0
+
+	client := &http.Client{}
+	for attempt < maxAttempts {
+		resp, err = client.Do(req)
+
+		// pod-identity calls will be retried in every scenario except when the err is nil
+		// and we get 200 response code.
+		if err == nil && resp != nil && resp.StatusCode == http.StatusOK {
+			return
+		}
+
+		attempt++
+
+		select {
+		// Not using exponential backoff logic because the avg time taken by nmi to complete
+		// identity assignment is ~35s. With exponential backoff we might end up waiting
+		// longer than required. Kubelet poll interval is 300ms which is aggressive and results in
+		// a lot of failed volume mount events. This retry will reduce the number of events in the
+		// case when nmi takes longer than usual.
+		case <-time.After(podIdentityRetryDelay):
+		case <-req.Context().Done():
+			// request is cancelled
+			err = req.Context().Err()
+			return nil, err
+		}
+	}
+	return
 }
 
 // ParseAzureEnvironment returns azure environment by name

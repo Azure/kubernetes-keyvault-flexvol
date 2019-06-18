@@ -41,7 +41,7 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() error {
 	glog.Infof("starting the %s, %s", program, version)
 
 	vaultUrl, err := adapter.getVaultURL()
-	if err != nil {
+	if err != nil || vaultUrl == nil {
 		return errors.Wrap(err, "failed to get vault")
 	}
 
