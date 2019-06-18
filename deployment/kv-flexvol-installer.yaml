@@ -24,10 +24,10 @@ spec:
         resources:
           requests:
             cpu: 50m
-            memory: 10Mi
+            memory: 100Mi
           limits:
             cpu: 50m
-            memory: 10Mi
+            memory: 100Mi
         env:
           # if you have used flex before on your cluster, use same directory
           # set TARGET_DIR env var and mount the same directory to to the container
