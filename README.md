@@ -122,7 +122,7 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
     kind: Pod
     metadata:
       name: nginx-flex-kv
-   spec:
+    spec:
       containers:
       - name: nginx-flex-kv
         image: nginx
@@ -173,7 +173,7 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
    kubectl apply -f https://raw.githubusercontent.com/Azure/aad-pod-identity/master/deploy/infra/deployment-rbac.yaml
    ```
 
-2. Assign SPN Role
+2. Assign Cluster SPN Role
 
    If the Service Principal used for the cluster was created separately (not automatically, as part of an AKS cluster's `MC_` resource group), assign it the "Managed Identity Operator" role:
 
