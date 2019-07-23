@@ -1,8 +1,8 @@
 binary := azurekeyvault-flexvolume
 REGISTRY_NAME ?= upstreamk8sci
 REGISTRY ?= $(REGISTRY_NAME).azurecr.io
-DOCKER_IMAGE := $(REGISTRY)/public/k8s/flexvolume/keyvault-flexvolume
-VERSION          := v0.0.10
+DOCKER_IMAGE ?= $(REGISTRY)/public/k8s/flexvolume/keyvault-flexvolume
+VERSION          := v0.0.11
 
 .PHONY: build
 build: authors deps
