@@ -81,7 +81,7 @@ func AuthGrantType() OAuthGrantType {
 	return OAuthGrantTypeServicePrincipal
 }
 
-// NMIResponse is the response recieved from aad-pod-identity
+// NMIResponse is the response received from aad-pod-identity
 type NMIResponse struct {
 	Token    adal.Token `json:"token"`
 	ClientID string     `json:"clientid"`
