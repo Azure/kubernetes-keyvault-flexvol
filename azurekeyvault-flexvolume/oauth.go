@@ -76,16 +76,19 @@ type Config struct {
 	ProviderKeyVersion string `json:"providerKeyVersion"`
 }
 
+// AuthGrantType ...
 func AuthGrantType() OAuthGrantType {
 	return OAuthGrantTypeServicePrincipal
 }
 
+// NMIResponse is the response received from aad-pod-identity
 type NMIResponse struct {
 	Token    adal.Token `json:"token"`
 	ClientID string     `json:"clientid"`
 }
 
-func GetManagementToken(grantType OAuthGrantType, cloudName string, tenantId string, usePodIdentity bool, aADClientSecret string, aADClientID string, podname string, podns string) (authorizer autorest.Authorizer, err error) {
+// GetManagementToken retrieves a new service principal token
+func GetManagementToken(grantType OAuthGrantType, cloudName, tenantID string, usePodIdentity bool, aADClientSecret, aADClientID, podname, podns string) (authorizer autorest.Authorizer, err error) {
 
 	env, err := ParseAzureEnvironment(cloudName)
 	if err != nil {
@@ -93,7 +96,7 @@ func GetManagementToken(grantType OAuthGrantType, cloudName string, tenantId str
 	}
 
 	rmEndPoint := env.ResourceManagerEndpoint
-	servicePrincipalToken, err := GetServicePrincipalToken(tenantId, env, rmEndPoint, usePodIdentity, aADClientSecret, aADClientID, podname, podns)
+	servicePrincipalToken, err := GetServicePrincipalToken(tenantID, env, rmEndPoint, usePodIdentity, aADClientSecret, aADClientID, podname, podns)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get service principal token")
 	}
@@ -102,7 +105,8 @@ func GetManagementToken(grantType OAuthGrantType, cloudName string, tenantId str
 
 }
 
-func GetKeyvaultToken(grantType OAuthGrantType, cloudName string, tenantId string, usePodIdentity bool, aADClientSecret string, aADClientID string, podname string, podns string) (authorizer autorest.Authorizer, err error) {
+// GetKeyvaultToken retrieves a new service principal token to access keyvault
+func GetKeyvaultToken(grantType OAuthGrantType, cloudName, tenantID string, usePodIdentity bool, aADClientSecret, aADClientID, podname, podns string) (authorizer autorest.Authorizer, err error) {
 
 	env, err := ParseAzureEnvironment(cloudName)
 	if err != nil {
@@ -113,7 +117,7 @@ func GetKeyvaultToken(grantType OAuthGrantType, cloudName string, tenantId strin
 	if '/' == kvEndPoint[len(kvEndPoint)-1] {
 		kvEndPoint = kvEndPoint[:len(kvEndPoint)-1]
 	}
-	servicePrincipalToken, err := GetServicePrincipalToken(tenantId, env, kvEndPoint, usePodIdentity, aADClientSecret, aADClientID, podname, podns)
+	servicePrincipalToken, err := GetServicePrincipalToken(tenantID, env, kvEndPoint, usePodIdentity, aADClientSecret, aADClientID, podname, podns)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get service principal token")
 	}
@@ -123,8 +127,8 @@ func GetKeyvaultToken(grantType OAuthGrantType, cloudName string, tenantId strin
 }
 
 // GetServicePrincipalToken creates a new service principal token based on the configuration
-func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource string, usePodIdentity bool, aADClientSecret string, aADClientID string, podname string, podns string) (*adal.ServicePrincipalToken, error) {
-	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, tenantId)
+func GetServicePrincipalToken(tenantID string, env *azure.Environment, resource string, usePodIdentity bool, aADClientSecret, aADClientID, podname, podns string) (*adal.ServicePrincipalToken, error) {
+	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, tenantID)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed creating the OAuth config")
 	}
@@ -135,7 +139,7 @@ func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource 
 	// Then nmi makes an adal request to get a token for the resource in the request, returns the `token` and the `clientid` as a reponse to the flexvolume request.
 
 	if usePodIdentity {
-		glog.V(0).Infoln("azure: using pod identity to retrieve token")
+		glog.V(0).Infof("azure: using pod identity to retrieve token for %s/%s", podns, podname)
 
 		endpoint := fmt.Sprintf("%s?resource=%s", nmiendpoint, resource)
 		req, err := http.NewRequest("GET", endpoint, nil)
@@ -186,7 +190,7 @@ func GetServicePrincipalToken(tenantId string, env *azure.Environment, resource 
 	}
 	// When flexvolume driver is using a Service Principal clientid + client secret to retrieve token for resource
 	if len(aADClientSecret) > 0 {
-		glog.V(2).Infoln("azure: using client_id+client_secret to retrieve access token")
+		glog.V(2).Infof("azure: using client_id+client_secret to retrieve access token for %s/%s", podns, podname)
 		return adal.NewServicePrincipalToken(
 			*oauthConfig,
 			aADClientID,

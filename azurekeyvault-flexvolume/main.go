@@ -48,14 +48,14 @@ type Option struct {
 	resourceGroup string
 	// directory to save the vault objects
 	dir string
-	// subscriptionId to azure
-	subscriptionId string
+	// subscriptionID to azure
+	subscriptionID string
 	// version flag
 	showVersion bool
 	// cloud name
 	cloudName string
 	// tenantID in AAD
-	tenantId string
+	tenantID string
 	// POD AAD Identity flag
 	usePodIdentity bool
 	// AAD app client secret (if not using POD AAD Identity)
@@ -93,11 +93,11 @@ func parseConfigs() (*Option, error) {
 	flag.StringVar(&options.vaultObjectTypes, "vaultObjectTypes", "", "Types of Azure Key Vault objects, semi-colon separated.")
 	flag.StringVar(&options.vaultObjectVersions, "vaultObjectVersions", "", "Versions of Azure Key Vault objects, semi-colon separated.")
 	flag.StringVar(&options.resourceGroup, "resourceGroup", "", "Resource group name of Azure Key Vault.")
-	flag.StringVar(&options.subscriptionId, "subscriptionId", "", "subscriptionId to Azure.")
+	flag.StringVar(&options.subscriptionID, "subscriptionId", "", "subscriptionId to Azure.")
 	flag.StringVar(&options.aADClientID, "aADClientID", "", "aADClientID to Azure.")
 	flag.StringVar(&options.aADClientSecret, "aADClientSecret", "", "aADClientSecret to Azure.")
 	flag.StringVar(&options.cloudName, "cloudName", "", "Type of Azure cloud")
-	flag.StringVar(&options.tenantId, "tenantId", "", "tenantId to Azure")
+	flag.StringVar(&options.tenantID, "tenantId", "", "tenantId to Azure")
 	flag.BoolVar(&options.usePodIdentity, "usePodIdentity", false, "usePodIdentity for using pod identity.")
 	flag.StringVar(&options.dir, "dir", "", "Directory path to write data.")
 	flag.BoolVar(&options.showVersion, "version", true, "Show version.")
@@ -110,6 +110,7 @@ func parseConfigs() (*Option, error) {
 	return &options, err
 }
 
+// Validate volume options
 func Validate(options Option) error {
 	if options.vaultName == "" {
 		return fmt.Errorf("-vaultName is not set")
@@ -123,7 +124,7 @@ func Validate(options Option) error {
 		return fmt.Errorf("-resourceGroup is not set")
 	}
 
-	if options.subscriptionId == "" {
+	if options.subscriptionID == "" {
 		return fmt.Errorf("-subscriptionId is not set")
 	}
 
@@ -131,7 +132,7 @@ func Validate(options Option) error {
 		return fmt.Errorf("-dir is not set")
 	}
 
-	if options.tenantId == "" {
+	if options.tenantID == "" {
 		return fmt.Errorf("-tenantId is not set")
 	}
 
