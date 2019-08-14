@@ -11,6 +11,8 @@ metadata:
   name: keyvault-flexvolume
   namespace: kv
 spec:
+  updateStrategy:
+    type: RollingUpdate
   template:
     metadata:
       labels:
