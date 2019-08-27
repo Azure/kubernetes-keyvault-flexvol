@@ -128,6 +128,10 @@ func GetKeyvaultToken(grantType OAuthGrantType, cloudName, tenantID string, useP
 
 // GetServicePrincipalToken creates a new service principal token based on the configuration
 func GetServicePrincipalToken(tenantID string, env *azure.Environment, resource string, usePodIdentity bool, aADClientSecret, aADClientID, podname, podns string) (*adal.ServicePrincipalToken, error) {
+	err := adal.AddToUserAgent(GetUserAgent())
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to add user agent to adal")
+	}
 	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, tenantID)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed creating the OAuth config")
