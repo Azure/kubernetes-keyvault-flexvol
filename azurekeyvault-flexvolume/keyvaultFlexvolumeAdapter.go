@@ -110,9 +110,6 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() error {
 
 func (adapter *KeyvaultFlexvolumeAdapter) initializeKvClient() (*kv.BaseClient, error) {
 	kvClient := kv.New()
-	if err := kvClient.AddToUserAgent("k8s-keyvault-flexvol"); err != nil {
-		return nil, errors.Wrap(err, "failed to add user agent to keyvault client")
-	}
 	options := adapter.options
 
 	token, err := GetKeyvaultToken(AuthGrantType(), options.cloudName, options.tenantID, options.usePodIdentity, options.aADClientSecret, options.aADClientID, options.podName, options.podNamespace)

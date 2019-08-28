@@ -107,7 +107,10 @@ func GetManagementToken(grantType OAuthGrantType, cloudName, tenantID string, us
 
 // GetKeyvaultToken retrieves a new service principal token to access keyvault
 func GetKeyvaultToken(grantType OAuthGrantType, cloudName, tenantID string, usePodIdentity bool, aADClientSecret, aADClientID, podname, podns string) (authorizer autorest.Authorizer, err error) {
-
+	err = adal.AddToUserAgent(GetUserAgent())
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to add user agent to adal")
+	}
 	env, err := ParseAzureEnvironment(cloudName)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse Azure environment")

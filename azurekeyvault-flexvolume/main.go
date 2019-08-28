@@ -17,7 +17,7 @@ import (
 
 const (
 	program                = "azurekeyvault-flexvolume"
-	version                = "0.0.12"
+	version                = "0.0.13"
 	permission os.FileMode = 0644
 	objectsSep             = ";"
 )
@@ -170,4 +170,8 @@ func Validate(options Option) error {
 	}
 
 	return nil
+}
+// GetUserAgent is used to as the extended user agent header to adal.
+func GetUserAgent() string {
+	return fmt.Sprintf("%s/%s", program, version)
 }
