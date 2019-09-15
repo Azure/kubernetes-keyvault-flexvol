@@ -118,6 +118,10 @@ func Validate(options Option) error {
 		return fmt.Errorf("-dir is not set")
 	}
 
+	if options.tenantID == "" {
+		return fmt.Errorf("-tenantId is not set")
+	}
+
 	if strings.Count(options.vaultObjectNames, objectsSep) !=
 		strings.Count(options.vaultObjectTypes, objectsSep) {
 		return fmt.Errorf("-vaultObjectNames and -vaultObjectTypes do not have the same number of items")
