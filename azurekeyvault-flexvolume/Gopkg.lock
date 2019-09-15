@@ -6,7 +6,6 @@
   name = "github.com/Azure/azure-sdk-for-go"
   packages = [
     "services/keyvault/2016-10-01/keyvault",
-    "services/keyvault/mgmt/2016-10-01/keyvault",
     "version",
   ]
   pruneopts = ""
@@ -54,20 +53,11 @@
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
 
-[[projects]]
-  digest = "1:7f569d906bdd20d906b606415b7d794f798f91a62fcfb6a4daa6d50690fb7a3f"
-  name = "github.com/satori/go.uuid"
-  packages = ["."]
-  pruneopts = ""
-  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
-  version = "v1.2.0"
-
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
     "github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault",
-    "github.com/Azure/azure-sdk-for-go/services/keyvault/mgmt/2016-10-01/keyvault",
     "github.com/Azure/go-autorest/autorest",
     "github.com/Azure/go-autorest/autorest/adal",
     "github.com/Azure/go-autorest/autorest/azure",

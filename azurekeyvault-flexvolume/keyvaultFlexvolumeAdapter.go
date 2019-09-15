@@ -10,10 +10,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 
 	kv "github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
-	kvmgmt "github.com/Azure/azure-sdk-for-go/services/keyvault/mgmt/2016-10-01/keyvault"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 )
@@ -31,7 +31,7 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() error {
 	ctx := adapter.ctx
 	if options.showVersion {
 		glog.V(0).Infof("%s %s", program, version)
-		glog.V(2).Infof("%s", options.subscriptionID)
+		glog.V(2).Infof("%s", options.tenantID)
 	}
 
 	_, err := os.Lstat(options.dir)
@@ -126,26 +126,27 @@ func wrapObjectTypeError(err error, objectType string, objectName string, object
 }
 
 func (adapter *KeyvaultFlexvolumeAdapter) getVaultURL() (vaultURL *string, err error) {
-	glog.V(2).Infof("subscriptionID: %s", adapter.options.subscriptionID)
-	glog.V(2).Infof("vaultName: %s", adapter.options.vaultName)
-	glog.V(2).Infof("resourceGroup: %s", adapter.options.resourceGroup)
-
-	vaultsClient := kvmgmt.NewVaultsClient(adapter.options.subscriptionID)
-	token, tokenErr := GetManagementToken(AuthGrantType(),
-		adapter.options.cloudName,
-		adapter.options.tenantID,
-		adapter.options.usePodIdentity,
-		adapter.options.aADClientSecret,
-		adapter.options.aADClientID,
-		adapter.options.podName,
-		adapter.options.podNamespace)
-	if tokenErr != nil {
-		return nil, errors.Wrap(tokenErr, "failed to get management token")
+	// See docs for validation spec: https://docs.microsoft.com/en-us/azure/key-vault/about-keys-secrets-and-certificates#objects-identifiers-and-versioning
+	if match, _ := regexp.MatchString("[-a-zA-Z0-9]{3,24}", adapter.options.vaultName); !match {
+		return nil, errors.Errorf("Invalid vault name: %q, must match [-a-zA-Z0-9]{3,24}")
 	}
-	vaultsClient.Authorizer = token
-	vault, err := vaultsClient.Get(adapter.ctx, adapter.options.resourceGroup, adapter.options.vaultName)
+	vaultDnsSuffix, err := GetVaultDNSSuffix(adapter.options.cloudName)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get vault %s", adapter.options.vaultName)
+		return nil, err
 	}
-	return vault.Properties.VaultURI, nil
+
+	vaultDnsSuffixValue := *vaultDnsSuffix
+
+	vaultUri := "https://" + adapter.options.vaultName + "." + vaultDnsSuffixValue + "/"
+	return &vaultUri, nil
+}
+
+func GetVaultDNSSuffix(cloudName string) (vaultTld *string, err error) {
+	environment, err := ParseAzureEnvironment(cloudName)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &environment.KeyVaultDNSSuffix, nil
 }

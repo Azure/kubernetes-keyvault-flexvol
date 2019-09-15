@@ -44,12 +44,8 @@ type Option struct {
 	vaultObjectVersions string
 	// the types of the Azure Key Vault objects
 	vaultObjectTypes string
-	// the resourcegroup of the Azure Key Vault
-	resourceGroup string
 	// directory to save the vault objects
 	dir string
-	// subscriptionID to azure
-	subscriptionID string
 	// version flag
 	showVersion bool
 	// cloud name
@@ -92,8 +88,6 @@ func parseConfigs() (*Option, error) {
 	flag.StringVar(&options.vaultObjectAliases, "vaultObjectAliases", "", "Filenames to write the Azure Key Vault objects to, semi-colon separated.")
 	flag.StringVar(&options.vaultObjectTypes, "vaultObjectTypes", "", "Types of Azure Key Vault objects, semi-colon separated.")
 	flag.StringVar(&options.vaultObjectVersions, "vaultObjectVersions", "", "Versions of Azure Key Vault objects, semi-colon separated.")
-	flag.StringVar(&options.resourceGroup, "resourceGroup", "", "Resource group name of Azure Key Vault.")
-	flag.StringVar(&options.subscriptionID, "subscriptionId", "", "subscriptionId to Azure.")
 	flag.StringVar(&options.aADClientID, "aADClientID", "", "aADClientID to Azure.")
 	flag.StringVar(&options.aADClientSecret, "aADClientSecret", "", "aADClientSecret to Azure.")
 	flag.StringVar(&options.cloudName, "cloudName", "", "Type of Azure cloud")
@@ -120,20 +114,8 @@ func Validate(options Option) error {
 		return fmt.Errorf("-vaultObjectNames is not set")
 	}
 
-	if options.resourceGroup == "" {
-		return fmt.Errorf("-resourceGroup is not set")
-	}
-
-	if options.subscriptionID == "" {
-		return fmt.Errorf("-subscriptionId is not set")
-	}
-
 	if options.dir == "" {
 		return fmt.Errorf("-dir is not set")
-	}
-
-	if options.tenantID == "" {
-		return fmt.Errorf("-tenantId is not set")
 	}
 
 	if strings.Count(options.vaultObjectNames, objectsSep) !=

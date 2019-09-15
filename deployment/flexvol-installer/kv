@@ -45,8 +45,6 @@ mount() {
 	PODNAME="$(echo "$2"|"$JQ" -r '.["kubernetes.io/pod.name"] // empty')"
 
 	# Required
-	RESOURCE_GROUP="$(echo "$2"|"$JQ" -r '.resourcegroup //empty')"
-	SUBSCRIPTION_ID="$(echo "$2"|"$JQ" -r '.subscriptionid //empty')"
 	TENANT_ID="$(echo "$2"|"$JQ" -r '.tenantid //empty')"
 	KEYVAULT_NAME="$(echo "$2"|"$JQ" -r '.keyvaultname //empty')"
 	KEYVAULT_OBJECT_NAMES="$(echo "$2"|"$JQ" -r '.keyvaultobjectnames //empty')"
@@ -73,16 +71,6 @@ mount() {
 	fi
 
 	# validate
-	if [ -z "${RESOURCE_GROUP}" ]; then
-		err "{\"status\": \"Failure\", \"message\": \"validation failed, resourcegroup is empty\"}"
-		exit 1
-	fi
-
-	if [ -z "${SUBSCRIPTION_ID}" ]; then
-		err "{\"status\": \"Failure\", \"message\": \"validation failed, subscriptionid is empty\"}"
-		exit 1
-	fi
-
 	if [ -z "${TENANT_ID}" ]; then
 		err "{\"status\": \"Failure\", \"message\": \"validation failed, tenantid is empty\"}"
 		exit 1
@@ -154,8 +142,8 @@ mount() {
 		exit 1
 	fi
 
-	echo "`date` $KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectNames=${KEYVAULT_OBJECT_NAMES} -vaultObjectAliases=${KEYVAULT_OBJECT_ALIASES} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} -vaultObjectVersions=${KEYVAULT_OBJECT_VERSIONS} -vaultObjectTypes=${KEYVAULT_OBJECT_TYPES}" >> $LOG
-	$KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectNames=${KEYVAULT_OBJECT_NAMES} -vaultObjectAliases=${KEYVAULT_OBJECT_ALIASES} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} -vaultObjectVersions=${KEYVAULT_OBJECT_VERSIONS} -vaultObjectTypes=${KEYVAULT_OBJECT_TYPES} >> $LOG 2>&1
+	echo "`date` $KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectNames=${KEYVAULT_OBJECT_NAMES} -vaultObjectAliases=${KEYVAULT_OBJECT_ALIASES} -dir=${MNTPATH} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=**** -aADClientID=${CLIENTID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} -vaultObjectVersions=${KEYVAULT_OBJECT_VERSIONS} -vaultObjectTypes=${KEYVAULT_OBJECT_TYPES}" >> $LOG
+	$KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectNames=${KEYVAULT_OBJECT_NAMES} -vaultObjectAliases=${KEYVAULT_OBJECT_ALIASES} -dir=${MNTPATH} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} -vaultObjectVersions=${KEYVAULT_OBJECT_VERSIONS} -vaultObjectTypes=${KEYVAULT_OBJECT_TYPES} >> $LOG 2>&1
 	
 	if [ $? -ne 0 ] ; then
 		errorLog=`tail -n 1 "${LOG}" | sed 's/.*Message=//' | tr -d '"'`

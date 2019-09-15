@@ -58,16 +58,12 @@ type AzureAuthConfig struct {
 	AADClientCertPassword string `json:"aadClientCertPassword"`
 	// Use managed service identity integrated with pod identity to get access to Azure ARM resources
 	UsePodIdentity bool `json:"usePodIdentity"`
-	// The ID of the Azure Subscription that the cluster is deployed in
-	SubscriptionID string `json:"subscriptionId"`
 }
 
 // Config holds the configuration parsed from the --cloud-config flag
 // All fields are required unless otherwise specified
 type Config struct {
 	AzureAuthConfig
-	// Resource Group for cluster
-	ResourceGroup string `json:"resourceGroup"`
 	// The kms provider vault name
 	ProviderVaultName string `json:"providerVaultName"`
 	// The kms provider key name
@@ -85,24 +81,6 @@ func AuthGrantType() OAuthGrantType {
 type NMIResponse struct {
 	Token    adal.Token `json:"token"`
 	ClientID string     `json:"clientid"`
-}
-
-// GetManagementToken retrieves a new service principal token
-func GetManagementToken(grantType OAuthGrantType, cloudName, tenantID string, usePodIdentity bool, aADClientSecret, aADClientID, podname, podns string) (authorizer autorest.Authorizer, err error) {
-
-	env, err := ParseAzureEnvironment(cloudName)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse Azure environment")
-	}
-
-	rmEndPoint := env.ResourceManagerEndpoint
-	servicePrincipalToken, err := GetServicePrincipalToken(tenantID, env, rmEndPoint, usePodIdentity, aADClientSecret, aADClientID, podname, podns)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get service principal token")
-	}
-	authorizer = autorest.NewBearerAuthorizer(servicePrincipalToken)
-	return authorizer, nil
-
 }
 
 // GetKeyvaultToken retrieves a new service principal token to access keyvault

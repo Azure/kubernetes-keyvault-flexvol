@@ -7,7 +7,7 @@ VERSION          := v0.0.13
 .PHONY: build
 build: authors deps
 	@echo "Building..."
-	$Q GOOS=linux CGO_ENABLED=0 go build . 
+	$Q GOOS=linux CGO_ENABLED=0 go build .
 	$Q mv $(binary) ../deployment/flexvol-installer/
 
 image: build

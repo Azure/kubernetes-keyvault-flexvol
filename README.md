@@ -100,8 +100,6 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
     |keyvaultobjectaliases|no|filenames to use when writing the objects|keyvaultobjectnames|
     |keyvaultobjecttypes|yes|types of Key Vault objects: secret, key or cert|""|
     |keyvaultobjectversions|no|versions of Key Vault objects, if not provided, will use latest|""|
-    |resourcegroup|yes|name of resource group containing Key Vault instance|""|
-    |subscriptionid|yes|name of subscription containing Key Vault instance|""|
     |tenantid|yes|name of tenant containing Key Vault instance|""|
 
     Multiple values in the `keyvaultobjectnames`, `keyvaultobjecttypes` and `keyvaultobjectversions` properties should be separated with semicolons (`;`).
@@ -143,8 +141,6 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
             keyvaultobjectaliases: "secret.json"      # [OPTIONAL] list of KeyVault object aliases
             keyvaultobjecttypes: secret               # [REQUIRED] list of KeyVault object types: secret, key, cert
             keyvaultobjectversions: "testversion"     # [OPTIONAL] list of KeyVault object versions (semi-colon separated), will get latest if empty
-            resourcegroup: "testresourcegroup"        # [REQUIRED] the resource group of the KeyVault
-            subscriptionid: "testsub"                 # [REQUIRED] the subscription ID of the KeyVault
             tenantid: "testtenant"                    # [REQUIRED] the tenant ID of the KeyVault
     ```
 
