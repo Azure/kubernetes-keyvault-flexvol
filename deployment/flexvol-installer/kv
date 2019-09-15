@@ -154,7 +154,7 @@ mount() {
 		exit 1
 	fi
 
-	echo "`date` $KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectNames=${KEYVAULT_OBJECT_NAMES} -vaultObjectAliases=${KEYVAULT_OBJECT_ALIASES} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} -vaultObjectVersions=${KEYVAULT_OBJECT_VERSIONS} -vaultObjectTypes=${KEYVAULT_OBJECT_TYPES}" >> $LOG
+	echo "`date` $KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectNames=${KEYVAULT_OBJECT_NAMES} -vaultObjectAliases=${KEYVAULT_OBJECT_ALIASES} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=**** -aADClientID=${CLIENTID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} -vaultObjectVersions=${KEYVAULT_OBJECT_VERSIONS} -vaultObjectTypes=${KEYVAULT_OBJECT_TYPES}" >> $LOG
 	$KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectNames=${KEYVAULT_OBJECT_NAMES} -vaultObjectAliases=${KEYVAULT_OBJECT_ALIASES} -resourceGroup=${RESOURCE_GROUP} -dir=${MNTPATH} -subscriptionId=${SUBSCRIPTION_ID} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} -vaultObjectVersions=${KEYVAULT_OBJECT_VERSIONS} -vaultObjectTypes=${KEYVAULT_OBJECT_TYPES} >> $LOG 2>&1
 	
 	if [ $? -ne 0 ] ; then
