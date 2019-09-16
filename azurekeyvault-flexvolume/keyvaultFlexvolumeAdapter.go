@@ -124,7 +124,7 @@ func (adapter *KeyvaultFlexvolumeAdapter) initializeKvClient() (*kv.BaseClient, 
 // azure-sdk-for-go returns some errors with \r\n in the body
 // kubernetes errors out with "invalid character '\r' in string literal", if we don't sanitise it first
 func sanitisedError(err error, objectType string, objectName string, objectVersion string) error {
-	sanitisedErr := strings.Replace(err.Error(), "\\r\\n", " ", -1)
+	sanitisedErr := strings.Replace(err.Error(), "\\", " ", -1)
 	return fmt.Errorf("failed to get objectType:%s, objectName:%s, objectVersion:%s %s", objectType, objectName, objectVersion, sanitisedErr)
 }
 
