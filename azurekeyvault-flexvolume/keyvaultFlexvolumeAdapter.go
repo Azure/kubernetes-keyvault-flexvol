@@ -77,7 +77,7 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() error {
 		case VaultTypeSecret:
 			secret, err := kvClient.GetSecret(ctx, *vaultURL, objectName, objectVersion)
 			if err != nil {
-				return wrapObjectTypeError(err, objectType, objectName, objectVersion)
+				return sanitisedError(err, objectType, objectName, objectVersion)
 			}
 			if err = ioutil.WriteFile(fileName, []byte(*secret.Value), permission); err != nil {
 				return errors.Wrapf(err, "azure KeyVault failed to write secret %s to %s", objectName, fileName)
@@ -85,7 +85,7 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() error {
 		case VaultTypeKey:
 			keybundle, err := kvClient.GetKey(ctx, *vaultURL, objectName, objectVersion)
 			if err != nil {
-				return wrapObjectTypeError(err, objectType, objectName, objectVersion)
+				return sanitisedError(err, objectType, objectName, objectVersion)
 			}
 			// NOTE: we are writing the RSA modulus content of the key
 			if err = ioutil.WriteFile(fileName, []byte(*keybundle.Key.N), permission); err != nil {
@@ -94,14 +94,14 @@ func (adapter *KeyvaultFlexvolumeAdapter) Run() error {
 		case VaultTypeCertificate:
 			certbundle, err := kvClient.GetCertificate(ctx, *vaultURL, objectName, objectVersion)
 			if err != nil {
-				return wrapObjectTypeError(err, objectType, objectName, objectVersion)
+				return sanitisedError(err, objectType, objectName, objectVersion)
 			}
 			if err = ioutil.WriteFile(fileName, *certbundle.Cer, permission); err != nil {
 				return errors.Wrapf(err, "azure KeyVault failed to write certificate %s to %s", objectName, fileName)
 			}
 		default:
 			err = errors.Errorf("Invalid vaultObjectTypes. Should be secret, key, or cert")
-			return wrapObjectTypeError(err, objectType, objectName, objectVersion)
+			return sanitisedError(err, objectType, objectName, objectVersion)
 		}
 		glog.V(0).Infof("azure KeyVault wrote %s %s at %s", objectType, objectName, fileName)
 	}
@@ -121,8 +121,11 @@ func (adapter *KeyvaultFlexvolumeAdapter) initializeKvClient() (*kv.BaseClient, 
 	return &kvClient, nil
 }
 
-func wrapObjectTypeError(err error, objectType string, objectName string, objectVersion string) error {
-	return errors.Wrapf(err, "failed to get objectType:%s, objectName:%s, objectVersion:%s", objectType, objectName, objectVersion)
+// azure-sdk-for-go returns some errors with \r\n in the body
+// kubernetes errors out with "invalid character '\r' in string literal", if we don't sanitise it first
+func sanitisedError(err error, objectType string, objectName string, objectVersion string) error {
+	sanitisedErr := strings.Replace(err.Error(), "\\", " ", -1)
+	return fmt.Errorf("failed to get objectType:%s, objectName:%s, objectVersion:%s %s", objectType, objectName, objectVersion, sanitisedErr)
 }
 
 func (adapter *KeyvaultFlexvolumeAdapter) getVaultURL() (vaultURL *string, err error) {
