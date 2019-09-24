@@ -3,7 +3,7 @@
 DIR=$(dirname "$(readlink -f "$0")")
 JQ="/usr/bin/jq"
 LOG="/var/log/kv-driver.log"
-VER="0.0.13"
+VER="0.0.14"
 KVFV="${DIR}/azurekeyvault-flexvolume"
 
 usage() {
