@@ -33,6 +33,6 @@ spec:
             keyvaultobjectnames: test1;test2    # list of KeyVault object names (semi-colon separated)
             keyvaultobjecttypes: secret;secret  # list of KeyVault object types: secret, key or cert (semi-colon separated)
             keyvaultobjectversions: ""     # [OPTIONAL] list of KeyVault object versions (semi-colon separated), will get latest if empty
-            resourcegroup: ""              # the resource group of the KeyVault
-            subscriptionid: ""             # the subscription ID of the KeyVault
+            resourcegroup: ""              # [REQUIRED FOR < v0.0.13] the resource group of the KeyVault
+            subscriptionid: ""             # [REQUIRED FOR < v0.0.13] the subscription ID of the KeyVault
             tenantid: ""                   # the tenant ID of the KeyVault

@@ -23,8 +23,6 @@ Here is a breakdown of the sections of yaml that matters :
         keyvaultname: "clustervault1119"
         keyvaultobjectname: "cert1"
         keyvaultobjecttype: "secret"
-        resourcegroup: "aks-traefik-flexvol"
-        subscriptionid: "SUB-ID"
         tenantid: "TENANT-ID"
         usepodidentity: "true" # the pod identity needs
 ```

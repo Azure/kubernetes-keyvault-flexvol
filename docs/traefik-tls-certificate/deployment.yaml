@@ -90,7 +90,5 @@ spec:
             keyvaultname: "clustervault1119"
             keyvaultobjectname: "cert1" 
             keyvaultobjecttype: "secret"
-            resourcegroup: "aks-traefik-flexvol"
-            subscriptionid: "SUB-ID"
             tenantid: "TENANT-ID"
             usepodidentity: "true"

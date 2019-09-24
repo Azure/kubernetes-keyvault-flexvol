@@ -70,8 +70,6 @@ We also add an extra volume that is referred to by the volume mount above:
             keyvaultname: "mykeyvault"
             keyvaultobjectnames: "myprivatekey;mycertificate"
             keyvaultobjecttypes: "key;cert"
-            resourcegroup: "mykeyvaultgroup"
-            subscriptionid: "azuresubscriptionid"
             tenantid: "azuretenantid"
 ```
 

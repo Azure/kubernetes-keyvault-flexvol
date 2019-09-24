@@ -154,6 +154,4 @@ spec:
             keyvaultname: "mykeyvault"
             keyvaultobjectnames: "myprivatekey;mycertificate"
             keyvaultobjecttypes: "key;cert"
-            resourcegroup: "mykeyvaultgroup"
-            subscriptionid: "azuresubscriptionid"
             tenantid: "azuretenantid"
