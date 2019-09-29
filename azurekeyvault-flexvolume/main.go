@@ -54,6 +54,10 @@ type Option struct {
 	tenantID string
 	// POD AAD Identity flag
 	usePodIdentity bool
+	// VM managed identity flag
+	useManagedIdentity bool
+	// the managed identity client ID
+	managedIdentityClientID string
 	// AAD app client secret (if not using POD AAD Identity)
 	aADClientSecret string
 	// AAD app client secret id (if not using POD AAD Identity)
@@ -93,6 +97,8 @@ func parseConfigs() (*Option, error) {
 	flag.StringVar(&options.cloudName, "cloudName", "", "Type of Azure cloud")
 	flag.StringVar(&options.tenantID, "tenantId", "", "tenantId to Azure")
 	flag.BoolVar(&options.usePodIdentity, "usePodIdentity", false, "usePodIdentity for using pod identity.")
+	flag.BoolVar(&options.useManagedIdentity, "useManagedIdentity", false, "Use the VM managed identity.")
+	flag.StringVar(&options.managedIdentityClientID, "managedIdentityClientID", "", "The managed identity client ID. Empty to use the System Assigned identity.")
 	flag.StringVar(&options.dir, "dir", "", "Directory path to write data.")
 	flag.BoolVar(&options.showVersion, "version", true, "Show version.")
 	flag.StringVar(&options.podName, "podName", "", "Name of the pod")
@@ -132,14 +138,14 @@ func Validate(options Option) error {
 		return fmt.Errorf("-vaultObjectNames and -vaultObjectAliases do not have the same number of items")
 	}
 
-	if options.usePodIdentity == false {
+	if !options.usePodIdentity && !options.useManagedIdentity {
 		if options.aADClientID == "" {
 			return fmt.Errorf("-aADClientID is not set")
 		}
 		if options.aADClientSecret == "" {
 			return fmt.Errorf("-aADClientSecret is not set")
 		}
-	} else {
+	} else if !options.useManagedIdentity {
 		if options.podName == "" {
 			return fmt.Errorf("-podName is not set")
 		}
@@ -157,6 +163,7 @@ func Validate(options Option) error {
 
 	return nil
 }
+
 // GetUserAgent is used to as the extended user agent header to adal.
 func GetUserAgent() string {
 	return fmt.Sprintf("%s/%s", program, version)
