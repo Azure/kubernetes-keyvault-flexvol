@@ -291,7 +291,7 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
 
 This option allows flexvol to use the managed identity assigned on the k8s cluster VMSS directly.
 
-> Warning: AKS as of today (2019/09) does not preserve the user assigned identity on VMSS during upgrade. You will need re-attach the managed identities to VMSS after an upgrade.
+> Warning: As of today (2019/09), AKS does not preserve the user assigned identity on VMSS during upgrade. You will need re-assign the managed identities to VMSS after an upgrade. The improved experience is planned.
 
 1. Create Azure Managed Identity
 
