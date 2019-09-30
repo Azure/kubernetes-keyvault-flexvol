@@ -94,7 +94,9 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
 
     |Name|Required|Description|Default Value|
     |---|---|---|---|
-    |usepodidentity|no|specify access mode: service principal or pod identity|"false"|
+    |usepodidentity|no|specify access mode: service principal or pod identity or azure managed identity|"false"|
+    |usemanagedidentity|no|specify access mode: use service principal or pod identity or azure managed identity|"false"|
+    |managedidentityclientid|no|specify the azure managed identity client id to use. specify empty to use the system assigned identity on VMSS|""|
     |keyvaultname|yes|name of Key Vault instance|""|
     |keyvaultobjectnames|yes|names of Key Vault objects to access|""|
     |keyvaultobjectaliases|no|filenames to use when writing the objects|keyvaultobjectnames|
@@ -138,6 +140,8 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
             name: kvcreds                             # [OPTIONAL] not required if using Pod Identity
           options:
             usepodidentity: "false"                   # [OPTIONAL] if not provided, will default to "false"
+            usemanagedidentity: "false"               # [OPTIONAL] if not provided, will default to "false"
+            managedidentityclientid: "clientid"       # [OPTIONAL] use the client id to specify which user assigned managed identity to use, leave empty to use system assigned managed identity
             keyvaultname: "testkeyvault"              # [REQUIRED] the name of the KeyVault
             keyvaultobjectnames: "testsecret"         # [REQUIRED] list of KeyVault object names (semi-colon separated)
             keyvaultobjectaliases: "secret.json"      # [OPTIONAL] list of KeyVault object aliases
@@ -282,6 +286,43 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
     ```
 
   > **NOTE**: When using the `Pod Identity` option mode, there may be some delay in obtaining the objects from Key Vault. During pod creation time, AAD Pod Identity needs to create the `AzureAssignedIdentity` for the pod based on the `AzureIdentity` and `AzureIdentityBinding` and retrieve the token for Key Vault. It is possible for the pod volume mount to fail during this time. If it does, the kubelet will keep retrying until after the token retrieval is complete and the mount succeeds.
+
+#### OPTION 3: VMSS Managed Identity
+
+This option allows flexvol to use the managed identity assigned on the k8s cluster VMSS directly.
+
+> Warning: AKS as of today (2019/09) does not preserve the user assigned identity on VMSS during upgrade. You will need re-attach the managed identities to VMSS after an upgrade.
+
+1. Create Azure Managed Identity
+
+```bash
+az identity create -g <RESOURCE GROUP> -n <IDENTITY NAME>
+```
+
+2. Grant Azure Managed Identity KeyVault permissions
+
+   Ensure that your Azure Identity has the role assignments required to see your Key Vault instance and to access its content. Run the following Azure CLI commands to assign these roles if needed:
+
+   ```bash
+   # set policy to access keys in your Key Vault
+   az keyvault set-policy -n $KV_NAME --key-permissions get --spn <YOUR AZURE MANAGED IDENTITY CLIENT ID>
+   # set policy to access secrets in your Key Vault
+   az keyvault set-policy -n $KV_NAME --secret-permissions get --spn <YOUR AZURE MANAGED IDENTITY CLIENT ID>
+   # set policy to access certs in your Key Vault
+   az keyvault set-policy -n $KV_NAME --certificate-permissions get --spn <YOUR AZURE MANAGED IDENTITY CLIENT ID>
+   ```
+
+3. Assign Azure Managed Identity to VMSS
+
+```bash
+az vmss identity assign -g <RESOURCE GROUP> -n <K8S-AGENT-POOL-VMSS> --identities <USER ASSIGNED IDENTITY>
+```
+
+4. Deploy your application. Specify `usemanagedidentity` to `true`.
+```yaml
+usemanagedidentity: "true"               # [OPTIONAL] if not provided, will default to "false"
+managedidentityclientid: "clientid"       # [OPTIONAL] use the client id to specify which user assigned managed identity to use, leave empty to use system assigned managed identity
+```
 
 ## Detailed use cases
 
