@@ -52,7 +52,7 @@ mount() {
 	
 	USE_POD_IDENTITY="$(echo "$2"|"$JQ" -r '.usepodidentity //empty')"
 	USE_MANAGED_IDENTITY="$(echo "$2"|"$JQ" -r '.usemanagedidentity //empty')"
-	MANAGED_IDENTITY_ID="$(echo "$2"|"$JQ" -r '.managedidentityid //empty')"
+	MANAGED_IDENTITY_CLIENT_ID="$(echo "$2"|"$JQ" -r '.managedidentityclientid //empty')"
 
 	# Optional
 	CLOUD_NAME="$(echo "$2"|"$JQ" -r '.cloudname //empty')"
