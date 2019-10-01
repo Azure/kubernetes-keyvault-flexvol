@@ -94,9 +94,9 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
 
     |Name|Required|Description|Default Value|
     |---|---|---|---|
-    |usepodidentity|no|specify access mode: service principal or pod identity or azure managed identity|"false"|
-    |usemanagedidentity|no|specify access mode: use service principal or pod identity or azure managed identity|"false"|
-    |managedidentityclientid|no|specify the azure managed identity client id to use. specify empty to use the system assigned identity on VMSS|""|
+    |usepodidentity|no|specify access mode: use a service principal or pod identity or vm managed identity|"false"|
+    |usevmmanagedidentity|no|specify access mode: use a service principal or pod identity or vm managed identity|"false"|
+    |vmmanagedidentityclientid|no|If using a user assigned identity as the VM's managed identity, then specify the identity's client id. If empty, then defaults to use the system assigned identity on the VM|""|
     |keyvaultname|yes|name of Key Vault instance|""|
     |keyvaultobjectnames|yes|names of Key Vault objects to access|""|
     |keyvaultobjectaliases|no|filenames to use when writing the objects|keyvaultobjectnames|
@@ -140,8 +140,8 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
             name: kvcreds                             # [OPTIONAL] not required if using Pod Identity
           options:
             usepodidentity: "false"                   # [OPTIONAL] if not provided, will default to "false"
-            usemanagedidentity: "false"               # [OPTIONAL] if not provided, will default to "false"
-            managedidentityclientid: "clientid"       # [OPTIONAL] use the client id to specify which user assigned managed identity to use, leave empty to use system assigned managed identity
+            usevmmanagedidentity: "false"             # [OPTIONAL] if not provided, will default to "false"
+            vmmanagedidentityclientid: "clientid"     # [OPTIONAL] use the client id to specify which user assigned managed identity to use, leave empty to use system assigned managed identity
             keyvaultname: "testkeyvault"              # [REQUIRED] the name of the KeyVault
             keyvaultobjectnames: "testsecret"         # [REQUIRED] list of KeyVault object names (semi-colon separated)
             keyvaultobjectaliases: "secret.json"      # [OPTIONAL] list of KeyVault object aliases
@@ -287,9 +287,9 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
 
   > **NOTE**: When using the `Pod Identity` option mode, there may be some delay in obtaining the objects from Key Vault. During pod creation time, AAD Pod Identity needs to create the `AzureAssignedIdentity` for the pod based on the `AzureIdentity` and `AzureIdentityBinding` and retrieve the token for Key Vault. It is possible for the pod volume mount to fail during this time. If it does, the kubelet will keep retrying until after the token retrieval is complete and the mount succeeds.
 
-#### OPTION 3: VMSS Managed Identity
+#### OPTION 3: VMSS User Assigned Managed Identity
 
-This option allows flexvol to use the managed identity assigned on the k8s cluster VMSS directly.
+This option allows flexvol to use the user assigned managed identity on the k8s cluster VMSS directly.
 
 > Warning: As of today (2019/09), AKS does not preserve the user assigned identity on VMSS during upgrade. You will need re-assign the managed identities to VMSS after an upgrade. The improved experience is planned.
 
@@ -318,10 +318,10 @@ az identity create -g <RESOURCE GROUP> -n <IDENTITY NAME>
 az vmss identity assign -g <RESOURCE GROUP> -n <K8S-AGENT-POOL-VMSS> --identities <USER ASSIGNED IDENTITY>
 ```
 
-4. Deploy your application. Specify `usemanagedidentity` to `true`.
+4. Deploy your application. Specify `usevmmanagedidentity` to `true`.
 ```yaml
-usemanagedidentity: "true"               # [OPTIONAL] if not provided, will default to "false"
-managedidentityclientid: "clientid"       # [OPTIONAL] use the client id to specify which user assigned managed identity to use, leave empty to use system assigned managed identity
+usevmmanagedidentity: "true"               # [OPTIONAL] if not provided, will default to "false"
+vmmanagedidentityclientid: "clientid"      # [OPTIONAL] use the client id to specify which user assigned managed identity to use, leave empty to use system assigned managed identity
 ```
 
 ## Detailed use cases

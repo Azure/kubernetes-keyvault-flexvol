@@ -84,7 +84,7 @@ type NMIResponse struct {
 }
 
 // GetKeyvaultToken retrieves a new service principal token to access keyvault
-func GetKeyvaultToken(grantType OAuthGrantType, cloudName, tenantID string, usePodIdentity, useManagedIdentity bool, managedIdentityClientID, aADClientSecret, aADClientID, podname, podns string) (authorizer autorest.Authorizer, err error) {
+func GetKeyvaultToken(grantType OAuthGrantType, cloudName, tenantID string, usePodIdentity, useVmManagedIdentity bool, vmManagedIdentityClientID, aADClientSecret, aADClientID, podname, podns string) (authorizer autorest.Authorizer, err error) {
 	err = adal.AddToUserAgent(GetUserAgent())
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to add user agent to adal")
@@ -98,7 +98,7 @@ func GetKeyvaultToken(grantType OAuthGrantType, cloudName, tenantID string, useP
 	if '/' == kvEndPoint[len(kvEndPoint)-1] {
 		kvEndPoint = kvEndPoint[:len(kvEndPoint)-1]
 	}
-	servicePrincipalToken, err := GetServicePrincipalToken(tenantID, env, kvEndPoint, usePodIdentity, useManagedIdentity, managedIdentityClientID, aADClientSecret, aADClientID, podname, podns)
+	servicePrincipalToken, err := GetServicePrincipalToken(tenantID, env, kvEndPoint, usePodIdentity, useVmManagedIdentity, vmManagedIdentityClientID, aADClientSecret, aADClientID, podname, podns)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get service principal token")
 	}
@@ -108,7 +108,7 @@ func GetKeyvaultToken(grantType OAuthGrantType, cloudName, tenantID string, useP
 }
 
 // GetServicePrincipalToken creates a new service principal token based on the configuration
-func GetServicePrincipalToken(tenantID string, env *azure.Environment, resource string, usePodIdentity bool, useManagedIdentity bool, managedIdentityClientID, aADClientSecret, aADClientID, podname, podns string) (*adal.ServicePrincipalToken, error) {
+func GetServicePrincipalToken(tenantID string, env *azure.Environment, resource string, usePodIdentity bool, useVmManagedIdentity bool, vmManagedIdentityClientID, aADClientSecret, aADClientID, podname, podns string) (*adal.ServicePrincipalToken, error) {
 	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, tenantID)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed creating the OAuth config")
@@ -170,18 +170,18 @@ func GetServicePrincipalToken(tenantID string, env *azure.Environment, resource 
 		return nil, fmt.Errorf("nmi response failed with status code: %d", resp.StatusCode)
 	}
 
-	if useManagedIdentity {
+	if useVmManagedIdentity {
 		msiEndpoint, err := adal.GetMSIVMEndpoint()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get managed identity (MSI) endpoint")
 		}
 
-		if managedIdentityClientID != "" {
-			glog.V(2).Infof("azure: using user assigned managed identity %s to retrieve access token for %s/%s", managedIdentityClientID, podns, podname)
+		if vmManagedIdentityClientID != "" {
+			glog.V(2).Infof("azure: using user assigned managed identity %s to retrieve access token for %s/%s", vmManagedIdentityClientID, podns, podname)
 			return adal.NewServicePrincipalTokenFromMSIWithUserAssignedID(
 				msiEndpoint,
 				resource,
-				managedIdentityClientID)
+				vmManagedIdentityClientID)
 		}
 
 		glog.V(2).Infof("azure: using system assigned managed identity to retrieve access token for %s/%s", podns, podname)
