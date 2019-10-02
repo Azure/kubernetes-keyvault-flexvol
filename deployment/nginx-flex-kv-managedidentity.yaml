@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: nginx-flex-kv
+  name: nginx-flex-kv
+spec:
+  containers:
+  - name: nginx-flex-kv
+    image: nginx
+    volumeMounts:
+    - name: test
+      mountPath: /kvmnt
+      readOnly: true
+  volumes:
+  - name: test
+    flexVolume:
+      driver: "azure/kv"
+      options:
+        usevmmanagedidentity: "true"   # [OPTIONAL] if not provided, will default to "false"
+        keyvaultname: ""               # the name of the KeyVault
+        keyvaultobjectnames: ""        # list of KeyVault object names (semi-colon separated)
+        keyvaultobjecttypes: secret    # list of KeyVault object types: secret, key or cert (semi-colon separated)
+        keyvaultobjectversions: ""     # [OPTIONAL] list of KeyVault object versions (semi-colon separated), will get latest if empty
+        tenantid: ""                   # the tenant ID of the KeyVault
