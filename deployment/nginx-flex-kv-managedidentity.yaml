@@ -17,7 +17,8 @@ spec:
     flexVolume:
       driver: "azure/kv"
       options:
-        usevmmanagedidentity: "true"   # [OPTIONAL] if not provided, will default to "false"
+        usevmmanagedidentity: "true"   # [OPTIONAL new in version >= v0.0.15] if not provided, will default to "false"
+        vmmanagedidentityclientid: ""  # [OPTIONAL new in version >= v0.0.15] use the client id to specify which user assigned managed identity to use, leave empty to use system assigned managed identity
         keyvaultname: ""               # the name of the KeyVault
         keyvaultobjectnames: ""        # list of KeyVault object names (semi-colon separated)
         keyvaultobjecttypes: secret    # list of KeyVault object types: secret, key or cert (semi-colon separated)
