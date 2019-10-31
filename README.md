@@ -57,6 +57,12 @@ kubectl create -f https://raw.githubusercontent.com/Azure/kubernetes-keyvault-fl
   keyvault-flexvolume-z6jm6   1/1       Running   0          3m
   ```
 
+**If using keyvault-flexvolume in a cluster with [pod security policy](https://kubernetes.io/docs/concepts/policy/pod-security-policy/) enabled**, create the following policy that enables the spec required for keyvault-flexvolume to work -
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/Azure/kubernetes-keyvault-flexvol/master/deployment/kv-flexvol-psp.yaml
+```
+
 ### Using Key Vault FlexVolume
 
 Key Vault FlexVolume offers four modes for accessing a Key Vault instance: [Service Principal], [Pod Identity], [VMSS User Assigned Managed Identity], [VMSS System Assigned Managed Identity].
