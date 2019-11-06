@@ -1,0 +1,48 @@
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: allow-flexvolume
+spec:
+  seLinux:
+    rule: RunAsAny
+  volumes:
+    - flexVolume
+    - hostPath
+    - secret
+  allowedFlexVolumes:
+    - driver: azure/kv
+  fsGroup:
+    rule: RunAsAny
+  runAsUser:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: RunAsAny
+  allowedHostPaths:
+    - pathPrefix: /etc/kubernetes/volumeplugins
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: psp:allow-flexvolume
+rules:
+- apiGroups: ['extensions']
+  resources: ['podsecuritypolicies']
+  verbs:     ['use']
+  resourceNames:
+  - allow-flexvolume
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: default:allow-flexvolume
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: psp:allow-flexvolume
+subjects:
+- kind: Group
+  name: system:authenticated
+  apiGroup: rbac.authorization.k8s.io
+- kind: Group
+  name: system:nodes
+  apiGroup: rbac.authorization.k8s.io
