@@ -175,9 +175,19 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
 
    ```shell
    kubectl apply -f https://raw.githubusercontent.com/Azure/aad-pod-identity/master/deploy/infra/deployment-rbac.yaml
+
+   ```
+   
+2. Create an Azure Identity
+
+   Run this [Azure CLI] command, and take note of the `clientId` and `id` values it returns:
+
+   ```shell
+   az identity create -g <resourcegroup> -n <name> -o json
    ```
 
-2. Assign Cluster SPN Role
+
+3. Assign Cluster SPN Role
 
    If the Service Principal used for the cluster was created separately (not automatically, as part of an AKS cluster's `MC_` resource group), assign it the "Managed Identity Operator" role:
 
@@ -185,13 +195,6 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
    az role assignment create --role "Managed Identity Operator" --assignee <sp id> --scope <full id of the managed identity>
    ```
 
-3. Create an Azure Identity
-
-   Run this [Azure CLI] command, and take note of the `clientId` and `id` values it returns:
-
-   ```shell
-   az identity create -g <resourcegroup> -n <name> -o json
-   ```
 
 4. Assign Azure Identity Roles
 
