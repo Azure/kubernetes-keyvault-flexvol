@@ -79,9 +79,10 @@ Ensure this service principal has all the required permissions to access content
 If not, run the following [Azure CLI] commands:
 
 ```bash
-# Assign Reader Role to the service principal for your keyvault
+# [Required for version < v0.0.13] Assign Reader Role to the service principal for your keyvault
 az role assignment create --role Reader --assignee <principalid> --scope /subscriptions/<subscriptionid>/resourcegroups/<resourcegroup>/providers/Microsoft.KeyVault/vaults/<keyvaultname>
 
+# Assign key vault permissions to your service principal
 az keyvault set-policy -n $KV_NAME --key-permissions get --spn <YOUR SPN CLIENT ID>
 az keyvault set-policy -n $KV_NAME --secret-permissions get --spn <YOUR SPN CLIENT ID>
 az keyvault set-policy -n $KV_NAME --certificate-permissions get --spn <YOUR SPN CLIENT ID>
