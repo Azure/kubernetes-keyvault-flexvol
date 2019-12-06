@@ -64,7 +64,7 @@ We also add an extra volume that is referred to by the volume mount above:
         flexVolume:
           driver: "azure/kv"
           secretRef:
-            kvcreds
+            name: kvcreds
           options:
             usepodidentity: "false"
             keyvaultname: "mykeyvault"
