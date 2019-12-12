@@ -32,7 +32,7 @@ spec:
             memory: 100Mi
         env:
           # if you have used flex before on your cluster, use same directory
-          # set TARGET_DIR env var and mount the same directory to to the container
+          # set TARGET_DIR env var and mount the same directory of the container
         - name: TARGET_DIR
           value: "/etc/kubernetes/volumeplugins"
         volumeMounts:
@@ -41,7 +41,8 @@ spec:
       volumes:
       - hostPath:
           # Modify this directory if your nodes are using a different one
-          # default is "/usr/libexec/kubernetes/kubelet-plugins/volume/exec" 
+          # default kubernetes: "/usr/libexec/kubernetes/kubelet-plugins/volume/exec"
+          # google cloud kubernetes: "/home/kubernetes/flexvolume"
           # below is Azure default
           path: "/etc/kubernetes/volumeplugins" 
         name: volplugins
