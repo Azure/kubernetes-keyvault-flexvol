@@ -112,6 +112,7 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
     |resourcegroup|required for version < v0.0.14|name of resource group containing Key Vault instance|""|
     |subscriptionid|required for version < v0.0.14|name of subscription containing Key Vault instance|""|
     |tenantid|yes|name of tenant containing Key Vault instance|""|
+    |cloudname|no|Name of the cloud environment, e.g. something like AzureChinaCloud, AzureGermanCloud. If not provided, the default public Azure cloud will be used|""|
 
     Multiple values in the `keyvaultobjectnames`, `keyvaultobjecttypes` and `keyvaultobjectversions` properties should be separated with semicolons (`;`).
 
