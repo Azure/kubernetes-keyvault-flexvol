@@ -352,11 +352,11 @@ The output should contain `type: SystemAssigned`.
 
    ```bash
    # set policy to access keys in your Key Vault
-   az keyvault set-policy -n $KV_NAME --key-permissions get --spn <YOUR AZURE MANAGED IDENTITY CLIENT ID>
+   az keyvault set-policy -n $KV_NAME --key-permissions get --object-id <YOUR SYSTEM ASSIGNED MANAGED IDENTITY PRINCIPAL ID>
    # set policy to access secrets in your Key Vault
-   az keyvault set-policy -n $KV_NAME --secret-permissions get --spn <YOUR AZURE MANAGED IDENTITY CLIENT ID>
+   az keyvault set-policy -n $KV_NAME --secret-permissions get --object-id <YOUR SYSTEM ASSIGNED MANAGED IDENTITY PRINCIPAL ID>
    # set policy to access certs in your Key Vault
-   az keyvault set-policy -n $KV_NAME --certificate-permissions get --spn <YOUR AZURE MANAGED IDENTITY CLIENT ID>
+   az keyvault set-policy -n $KV_NAME --certificate-permissions get --object-id <YOUR SYSTEM ASSIGNED MANAGED IDENTITY PRINCIPAL ID>
    ```
 
 3. Deploy your application. Specify `usevmmanagedidentity` to `true`.
