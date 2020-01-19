@@ -3,7 +3,7 @@ kind: Namespace
 metadata:
   name: kv
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   labels:
@@ -11,6 +11,9 @@ metadata:
   name: keyvault-flexvolume
   namespace: kv
 spec:
+  selector:
+    matchLabels:
+      app: keyvault-flexvolume
   updateStrategy:
     type: RollingUpdate
   template:
