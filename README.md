@@ -153,7 +153,7 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
             keyvaultname: "testkeyvault"              # [REQUIRED] the name of the KeyVault
             keyvaultobjectnames: "testsecret"         # [REQUIRED] list of KeyVault object names (semi-colon separated)
             keyvaultobjectaliases: "secret.json"      # [OPTIONAL] list of KeyVault object aliases
-            keyvaultobjecttypes: secret               # [REQUIRED] list of KeyVault object types: secret, key, cert
+            keyvaultobjecttypes: secret               # [REQUIRED] list of KeyVault object types: secret, key, cert (semi-colon separated)
             keyvaultobjectversions: "testversion"     # [OPTIONAL] list of KeyVault object versions (semi-colon separated), will get latest if empty
             resourcegroup: "testresourcegroup"        # [REQUIRED for version < v0.0.14] the resource group of the KeyVault
             subscriptionid: "testsub"                 # [REQUIRED for version < v0.0.14] the subscription ID of the KeyVault
