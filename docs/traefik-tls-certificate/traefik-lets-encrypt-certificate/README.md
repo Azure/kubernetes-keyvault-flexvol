@@ -49,8 +49,6 @@ We used service principle option:
             keyvaultobjecttype: "secret"
             tenantid: "##############"
             usepodidentity: "false"
-            resourcegroup: "################"
-            subscriptionid: "###############"
 ```
 
 __certs__: the flexVolume that fetches the certificate. We download it as a _*secret*_ to retrieve both the private and public part required for setting up TLS.

@@ -91,5 +91,3 @@ spec:
             keyvaultobjecttype: "secret"
             tenantid: "TENANT-ID"
             usepodidentity: "false"
-            resourcegroup: "resourcegroupname"
-            subscriptionid: "########-####-####-####-############"
