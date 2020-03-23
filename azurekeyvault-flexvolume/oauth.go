@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	nmibase		                = "http://localhost"
-	nmipath						= "host/token/"
+	nmibase                     = "http://localhost"
+	nmipath                     = "host/token/"
 	podnameheader               = "podname"
 	podnsheader                 = "podns"
 	podIdentityRetryDelay       = time.Duration(7 * time.Second)
