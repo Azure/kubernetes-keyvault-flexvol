@@ -112,7 +112,7 @@ func (adapter *KeyvaultFlexvolumeAdapter) initializeKvClient() (*kv.BaseClient, 
 	kvClient := kv.New()
 	options := adapter.options
 
-	token, err := GetKeyvaultToken(AuthGrantType(), options.cloudName, options.tenantID, options.usePodIdentity, options.useVmManagedIdentity, options.vmManagedIdentityClientID, options.aADClientSecret, options.aADClientID, options.podName, options.podNamespace)
+	token, err := GetKeyvaultToken(AuthGrantType(), options.cloudName, options.tenantID, options.usePodIdentity, options.useVmManagedIdentity, options.vmManagedIdentityClientID, options.aADClientSecret, options.aADClientID, options.podName, options.podNamespace, options.nmiPort)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get key vault token")
 	}

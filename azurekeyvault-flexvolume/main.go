@@ -66,6 +66,8 @@ type Option struct {
 	podName string
 	// the namespace of the pod (if using POD AAD Identity)
 	podNamespace string
+	// the port NMI is running on (if using POD AAD Identity)
+	nmiPort string
 }
 
 func main() {
@@ -103,6 +105,7 @@ func parseConfigs() (*Option, error) {
 	flag.BoolVar(&options.showVersion, "version", true, "Show version.")
 	flag.StringVar(&options.podName, "podName", "", "Name of the pod")
 	flag.StringVar(&options.podNamespace, "podNamespace", "", "Namespace of the pod")
+	flag.StringVar(&options.nmiPort, "nmiPort", "2579", "NMI port number")
 
 	flag.Parse()
 
@@ -153,6 +156,9 @@ func Validate(options Option) error {
 		}
 		if options.podNamespace == "" {
 			return fmt.Errorf("-podNamespace is not set")
+		}
+		if options.nmiPort == "" {
+			return fmt.Errorf("-nmiPort is not set")
 		}
 	}
 
