@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"strconv"
 
 	"github.com/golang/glog"
 )
@@ -159,6 +160,9 @@ func Validate(options Option) error {
 		}
 		if options.nmiPort == "" {
 			return fmt.Errorf("-nmiPort is not set")
+		}
+		if _, err := strconv.ParseUint(options.nmiPort, 10, 16); err != nil {
+			return fmt.Errorf("-nmiPort must be an integer between 0 and 65535.")
 		}
 	}
 

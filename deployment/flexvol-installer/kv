@@ -107,6 +107,10 @@ mount() {
 		VM_MANAGED_IDENTITY_CLIENT_ID=""
 	fi 
 
+	if [ -z "${NMI_PORT}" ]; then
+		NMI_PORT="2579"
+	fi 
+
 	if [ "${USE_POD_IDENTITY}" = false -a "${USE_VM_MANAGED_IDENTITY}" = false ]; then
 		if [ -z "${CLIENTID}" ]; then
 			err "{\"status\": \"Failure\", \"message\": \"validation failed, secret/clientid is empty\"}"
