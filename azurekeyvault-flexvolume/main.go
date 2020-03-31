@@ -162,7 +162,7 @@ func Validate(options Option) error {
 			return fmt.Errorf("-nmiPort is not set")
 		}
 		if _, err := strconv.ParseUint(options.nmiPort, 10, 16); err != nil {
-			return fmt.Errorf("-nmiPort must be an integer between 0 and 65535.")
+			return fmt.Errorf("-nmiPort must be an integer between 0 and 65535")
 		}
 	}
 

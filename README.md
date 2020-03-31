@@ -113,6 +113,7 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
     |subscriptionid|required for version < v0.0.14|name of subscription containing Key Vault instance|""|
     |tenantid|yes|name of tenant containing Key Vault instance|""|
     |cloudname|no|Name of the cloud environment, e.g. something like AzureChinaCloud, AzureGermanCloud. If not provided, the default public Azure cloud will be used|""|
+    |nmiport|no|Port number of the NMI daemonset. If not provided, the default NMI port is used|"2579"|
 
     Multiple values in the `keyvaultobjectnames`, `keyvaultobjecttypes` and `keyvaultobjectversions` properties should be separated with semicolons (`;`).
 
@@ -158,6 +159,7 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
             resourcegroup: "testresourcegroup"        # [REQUIRED for version < v0.0.14] the resource group of the KeyVault
             subscriptionid: "testsub"                 # [REQUIRED for version < v0.0.14] the subscription ID of the KeyVault
             tenantid: "testtenant"                    # [REQUIRED] the tenant ID of the KeyVault
+            nmiport: "nmiportnumber"                  # [OPTIONAL] port number of the NMI daemonset, will default to "2579"
     ```
 
     Deploy your app
