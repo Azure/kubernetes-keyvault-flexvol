@@ -10,34 +10,22 @@
 openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in domain.key -out pkcs8.key
 ```
 
-- You'll need to create .pem file which will have certificates created followed by the pkcs8 key in the following format so you can import the certificate to KeyVault.
-
-```pem
------BEGIN CERTIFICATE-----
-<Your certificate>
------END CERTIFICATE-----
------BEGIN PRIVATE KEY-----
-<Your pkcs8 private key>
------END PRIVATE KEY-----
-```
-
-- Import the certificate (.pem) to KeyVault as following:
+- You'll need to import 2 secrets in KV; certificates followed by the pkcs8 key to KeyVault as following:
 
 ```bash
-az keyvault certificate import --vault-name "KV-name" --name "certificate-name" --file "./file-name.pem"
+az keyvault secret set --vault-name "KV-name" -n "tls-key" -f tls-key.key
+az keyvault secret set --vault-name "KV-name" -n "tls-pem" -f tls-pem.pem
 ```
 
-## Deploy Traefik to AKS
+### Deploy Traefik to AKS
 
-The yaml file configures a Traefik ingress controller, with a certificate from Let's Encrypt as default TLS certificate.
+The yaml file configure a Traefik ingress controller, with a certificate from Let's Encrypt as default TLS certificate.
 
-### Volumes
+#### Volumes
 
-We used service principle option:
+We used pod identity option:
 
 ```yaml
-- name: ssl
-        emptyDir: {}
       - name: certs
         flexVolume:
           driver: "azure/kv"
@@ -45,36 +33,14 @@ We used service principle option:
             name: kvcreds
           options:
             keyvaultname: "######"
-            keyvaultobjectname: "####"
-            keyvaultobjecttype: "secret"
+            keyvaultobjectname: ####;####
+            keyvaultobjecttype: secret;secret
+            keyvaultobjectaliases: tls-pem.pem;tls-key.key
             tenantid: "##############"
-            usepodidentity: "false"
+            usepodidentity: "true"
 ```
 
-__certs__: the flexVolume that fetches the certificate. We download it as a _*secret*_ to retrieve both the private and public part required for setting up TLS.
-
-__ssl__ : An emptyDir volume that translates to a tmpfs mount accessible only by this pod. We will use it to store the converted format of the certificate.
-Containers
-
-#### initContainer
-
-Traefik (and most ingresses), requires the certificate as PEM + private key pair format. We need to extract both from the .pem file retreived from KeyVault before starting Traefik. This is what the initContainer is doing :
-
-```yaml
-initContainers:
-    - image: tannerfe/alpine-openssl
-    name: convert-certs
-    command: ['sh', '-c', 'openssl x509 -in /certs/<certificate-name> -out /ssl/certificate.pem &&
-    openssl pkey -in /certs/certificate-name> -out /ssl/certificate.key']
-    volumeMounts:
-    - name: certs
-        mountPath: /certs
-        readOnly: true
-    - name: ssl
-        mountPath: /ssl
-```
-
-We use an alpine based openssl container. First, We need to mount the certs volume which is our readOnly flexvolume with KeyVault certificate and then write to the ssl volume
+__certs__: the flexVolume that fetches the private and public part required for setting up TLS.
 
 ### Traefik container
 
@@ -85,6 +51,6 @@ In the Traefik container, we mount the ssl volume alongside Traefik config volum
     address = ":443"
     [entryPoints.https.tls]
     [entryPoints.https.tls.defaultCertificate]
-        certFile = "/ssl/certificate.pem"
-        keyFile = "/ssl/certificate.key"
+        certFile = "/certs/tls-pem.pem"
+        keyFile = "/certs/tls-key.key"
 ```

@@ -1,41 +1,31 @@
 apiVersion: apps/v1
 kind: Deployment
-metadata:
-  name: release-name-traefik
-  labels:
+metadata: 
+  name: traefik
+  labels: 
     app: traefik
-    chart: "traefik-1.59.0"
-    release: "release-name"
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2        # how many pods we can add at a time
+      maxUnavailable: 0  # maxUnavailable define how many pods can be unavailable
+                         # during the rolling update
   selector:
     matchLabels:
       app: traefik
-      release: release-name
   template:
     metadata:
       labels:
         app: traefik
-        chart: "traefik-1.59.0"
-        release: "release-name"
-        aadpodidbinding: sslking-selector
+        aadpodidbinding: traefikssl-selector
     spec:
-      serviceAccountName: release-name-traefik
-      terminationGracePeriodSeconds: 60
-      initContainers:
-      - image: tannerfe/alpine-openssl
-        name: convert-certs
-        command: ['sh', '-c', 'openssl x509 -in /certs/traefik-certificate -out /ssl/certificate.pem && 
-                  openssl pkey -in /certs/traefik-certificate -out /ssl/certificate.key']
-        volumeMounts:
-        - name: certs
-          mountPath: /certs
-          readOnly: true
-        - name: ssl
-          mountPath: /ssl
+      serviceAccountName: traefik
+      terminationGracePeriodSeconds: 60    
       containers:
-      - image: traefik:1.7.7-alpine
-        name: release-name-traefik
+      - image: traefik:1.7.7-alpine 
+        name: traefik
         resources:
           requests:
             cpu: "100m"
@@ -45,7 +35,7 @@ spec:
             memory: "30Mi"
         readinessProbe:
           tcpSocket:
-            port: 80
+            port: 80 
           failureThreshold: 1
           initialDelaySeconds: 10
           periodSeconds: 10
@@ -53,41 +43,53 @@ spec:
           timeoutSeconds: 2
         livenessProbe:
           tcpSocket:
-            port: 80
+            port: 80 
           failureThreshold: 3
           initialDelaySeconds: 10
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 2
         volumeMounts:
-        - mountPath: /config
-          name: config
-        - name: ssl
-          mountPath: /ssl
+        - name: certs 
+          mountPath: /certs
+        - name: config 
+          mountPath: /config
         ports:
         - name: http
-          containerPort: 80
+          containerPort: 80 
           protocol: TCP
         - name: https
-          containerPort: 443
-          protocol: TCP
-        - name: dash
-          containerPort: 8080
+          containerPort: 443 
           protocol: TCP
         args:
         - --configfile=/config/traefik.toml
       volumes:
       - name: config
         configMap:
-          name: release-name-traefik
-      - name: ssl
-        emptyDir: {}
+          name: traefik
       - name: certs
         flexVolume:
           driver: "azure/kv"
-          options:
-            keyvaultname: "clustervault1119"
-            keyvaultobjectname: "cert1" 
-            keyvaultobjecttype: "secret"
-            tenantid: "TENANT-ID"
-            usepodidentity: "false"
+          options: 
+            keyvaultname: "<KV-Name>"
+            keyvaultobjectname: tls-pem;tls-key 
+            keyvaultobjectaliases: tls-pem.pem;tls-key.key
+            keyvaultobjecttype: secret;secret
+            tenantid: "#######-##########-#########"
+            usepodidentity: "true"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik-service
+  labels:
+    app: traefik
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Cluster
+  selector:
+    app: traefik
+  ports:
+  - port: 443
+    name: https

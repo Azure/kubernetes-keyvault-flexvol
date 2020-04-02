@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traefik
+  labels:
+    app: traefik
+data:
+  traefik.toml: |
+    # traefik.toml
+    logLevel = "DEBUG"
+    defaultEntryPoints = ["http","https"]
+    [entryPoints]
+      [entryPoints.http]
+      address = ":80"
+      compress = true
+      [entryPoints.https]
+      address = ":443"
+        [entryPoints.https.tls]
+        [entryPoints.https.tls.defaultCertificate]
+          certFile = "/certs/tls-pem.pem"
+          keyFile = "/certs/tls-key.key"
+    [kubernetes]
+    [traefikLog]
+      format = "json"
+    [api]
+      entryPoint = "traefik"
+      dashboard = true
