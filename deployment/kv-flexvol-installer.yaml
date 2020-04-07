@@ -22,6 +22,12 @@ spec:
         app: keyvault-flexvolume
     spec:
       tolerations:
+      # if kv doesn't exist on an existing node, check the nodes Taints and add the relevant tolerations
+      # see more at https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+      # and https://github.com/Azure/kubernetes-keyvault-flexvol/issues/183#issuecomment-610359114
+      # - key: nvidia.com/gpu
+      #   value: present
+      #   effect: NoSchedule
       containers:
         - name: flexvol-driver-installer
           image: "mcr.microsoft.com/k8s/flexvolume/keyvault-flexvolume:v0.0.16"
