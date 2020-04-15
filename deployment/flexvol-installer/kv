@@ -58,6 +58,7 @@ mount() {
 	CLOUD_NAME="$(echo "$2"|"$JQ" -r '.cloudname //empty')"
 	KEYVAULT_OBJECT_VERSIONS="$(echo "$2"|"$JQ" -r '.keyvaultobjectversions //empty')"
 	KEYVAULT_OBJECT_ALIASES="$(echo "$2"|"$JQ" -r '.keyvaultobjectaliases //empty')"
+	NMI_PORT="$(echo "$2"|"$JQ" -r '.nmiport //empty')"
 	
     # backward compatibility (should be deprecated!)
 	if [ -z "${KEYVAULT_OBJECT_NAMES}" ]; then
@@ -106,6 +107,10 @@ mount() {
 		VM_MANAGED_IDENTITY_CLIENT_ID=""
 	fi 
 
+	if [ -z "${NMI_PORT}" ]; then
+		NMI_PORT="2579"
+	fi 
+
 	if [ "${USE_POD_IDENTITY}" = false -a "${USE_VM_MANAGED_IDENTITY}" = false ]; then
 		if [ -z "${CLIENTID}" ]; then
 			err "{\"status\": \"Failure\", \"message\": \"validation failed, secret/clientid is empty\"}"
@@ -152,8 +157,8 @@ mount() {
 		exit 1
 	fi
 
-	echo "`date` $KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectNames=${KEYVAULT_OBJECT_NAMES} -vaultObjectAliases=${KEYVAULT_OBJECT_ALIASES} -dir=${MNTPATH} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=**** -aADClientID=${CLIENTID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} -vaultObjectVersions=${KEYVAULT_OBJECT_VERSIONS} -vaultObjectTypes=${KEYVAULT_OBJECT_TYPES}" >> $LOG
-	$KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectNames=${KEYVAULT_OBJECT_NAMES} -vaultObjectAliases=${KEYVAULT_OBJECT_ALIASES} -dir=${MNTPATH} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} -useVmManagedIdentity=${USE_VM_MANAGED_IDENTITY} -vmManagedIdentityClientID=${VM_MANAGED_IDENTITY_CLIENT_ID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} -vaultObjectVersions=${KEYVAULT_OBJECT_VERSIONS} -vaultObjectTypes=${KEYVAULT_OBJECT_TYPES} >> $LOG 2>&1
+	echo "`date` $KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectNames=${KEYVAULT_OBJECT_NAMES} -vaultObjectAliases=${KEYVAULT_OBJECT_ALIASES} -dir=${MNTPATH} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=**** -aADClientID=${CLIENTID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} -nmiPort=${NMI_PORT} -vaultObjectVersions=${KEYVAULT_OBJECT_VERSIONS} -vaultObjectTypes=${KEYVAULT_OBJECT_TYPES}" >> $LOG
+	$KVFV -logtostderr=1 -vaultName=${KEYVAULT_NAME} -vaultObjectNames=${KEYVAULT_OBJECT_NAMES} -vaultObjectAliases=${KEYVAULT_OBJECT_ALIASES} -dir=${MNTPATH} -cloudName=${CLOUD_NAME} -tenantId=${TENANT_ID} -aADClientSecret=${CLIENTSECRET} -aADClientID=${CLIENTID} -useVmManagedIdentity=${USE_VM_MANAGED_IDENTITY} -vmManagedIdentityClientID=${VM_MANAGED_IDENTITY_CLIENT_ID} -usePodIdentity=${USE_POD_IDENTITY} -podNamespace=${PODNAMESPACE} -podName=${PODNAME} -nmiPort=${NMI_PORT} -vaultObjectVersions=${KEYVAULT_OBJECT_VERSIONS} -vaultObjectTypes=${KEYVAULT_OBJECT_TYPES} >> $LOG 2>&1
 	
 	if [ $? -ne 0 ] ; then
 		errorLog=`tail -n 1 "${LOG}" | sed 's/.*Message=//' | tr -d '"'`

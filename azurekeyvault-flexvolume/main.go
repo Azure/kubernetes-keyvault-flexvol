@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"strconv"
 
 	"github.com/golang/glog"
 )
@@ -66,6 +67,8 @@ type Option struct {
 	podName string
 	// the namespace of the pod (if using POD AAD Identity)
 	podNamespace string
+	// the port NMI is running on (if using POD AAD Identity)
+	nmiPort string
 }
 
 func main() {
@@ -103,6 +106,7 @@ func parseConfigs() (*Option, error) {
 	flag.BoolVar(&options.showVersion, "version", true, "Show version.")
 	flag.StringVar(&options.podName, "podName", "", "Name of the pod")
 	flag.StringVar(&options.podNamespace, "podNamespace", "", "Namespace of the pod")
+	flag.StringVar(&options.nmiPort, "nmiPort", "2579", "NMI port number")
 
 	flag.Parse()
 
@@ -153,6 +157,12 @@ func Validate(options Option) error {
 		}
 		if options.podNamespace == "" {
 			return fmt.Errorf("-podNamespace is not set")
+		}
+		if options.nmiPort == "" {
+			return fmt.Errorf("-nmiPort is not set")
+		}
+		if _, err := strconv.ParseUint(options.nmiPort, 10, 16); err != nil {
+			return fmt.Errorf("-nmiPort must be an integer between 0 and 65535")
 		}
 	}
 

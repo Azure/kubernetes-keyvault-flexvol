@@ -21,7 +21,8 @@ import (
 )
 
 const (
-	nmiendpoint                 = "http://localhost:2579/host/token/"
+	nmibase                     = "http://localhost"
+	nmipath                     = "host/token/"
 	podnameheader               = "podname"
 	podnsheader                 = "podns"
 	podIdentityRetryDelay       = time.Duration(7 * time.Second)
@@ -84,7 +85,7 @@ type NMIResponse struct {
 }
 
 // GetKeyvaultToken retrieves a new service principal token to access keyvault
-func GetKeyvaultToken(grantType OAuthGrantType, cloudName, tenantID string, usePodIdentity, useVmManagedIdentity bool, vmManagedIdentityClientID, aADClientSecret, aADClientID, podname, podns string) (authorizer autorest.Authorizer, err error) {
+func GetKeyvaultToken(grantType OAuthGrantType, cloudName, tenantID string, usePodIdentity, useVmManagedIdentity bool, vmManagedIdentityClientID, aADClientSecret, aADClientID, podname, podns, nmiport string) (authorizer autorest.Authorizer, err error) {
 	err = adal.AddToUserAgent(GetUserAgent())
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to add user agent to adal")
@@ -98,7 +99,7 @@ func GetKeyvaultToken(grantType OAuthGrantType, cloudName, tenantID string, useP
 	if '/' == kvEndPoint[len(kvEndPoint)-1] {
 		kvEndPoint = kvEndPoint[:len(kvEndPoint)-1]
 	}
-	servicePrincipalToken, err := GetServicePrincipalToken(tenantID, env, kvEndPoint, usePodIdentity, useVmManagedIdentity, vmManagedIdentityClientID, aADClientSecret, aADClientID, podname, podns)
+	servicePrincipalToken, err := GetServicePrincipalToken(tenantID, env, kvEndPoint, usePodIdentity, useVmManagedIdentity, vmManagedIdentityClientID, aADClientSecret, aADClientID, podname, podns, nmiport)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get service principal token")
 	}
@@ -108,21 +109,22 @@ func GetKeyvaultToken(grantType OAuthGrantType, cloudName, tenantID string, useP
 }
 
 // GetServicePrincipalToken creates a new service principal token based on the configuration
-func GetServicePrincipalToken(tenantID string, env *azure.Environment, resource string, usePodIdentity bool, useVmManagedIdentity bool, vmManagedIdentityClientID, aADClientSecret, aADClientID, podname, podns string) (*adal.ServicePrincipalToken, error) {
+func GetServicePrincipalToken(tenantID string, env *azure.Environment, resource string, usePodIdentity bool, useVmManagedIdentity bool, vmManagedIdentityClientID, aADClientSecret, aADClientID, podname, podns, nmiport string) (*adal.ServicePrincipalToken, error) {
 	oauthConfig, err := adal.NewOAuthConfig(env.ActiveDirectoryEndpoint, tenantID)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed creating the OAuth config")
 	}
 
-	// For usepodidentity mode, the flexvolume driver makes an authorization request to fetch token for a resource from the NMI host endpoint (http://127.0.0.1:2579/host/token/).
+	// For usepodidentity mode, the flexvolume driver makes an authorization request to fetch token for a resource from the NMI host endpoint (http://127.0.0.1:nmiport/host/token/).
 	// The request includes the pod namespace `podns` and the pod name `podname` in the request header and the resource endpoint of the resource requesting the token.
 	// The NMI server identifies the pod based on the `podns` and `podname` in the request header and then queries k8s (through MIC) for a matching azure identity.
 	// Then nmi makes an adal request to get a token for the resource in the request, returns the `token` and the `clientid` as a reponse to the flexvolume request.
 
 	if usePodIdentity {
 		glog.V(0).Infof("azure: using pod identity to retrieve token for %s/%s", podns, podname)
+		glog.V(0).Infof("azure: connecting to nmi at %s:%s/%s", nmibase, nmiport, nmipath)
 
-		endpoint := fmt.Sprintf("%s?resource=%s", nmiendpoint, resource)
+		endpoint := fmt.Sprintf("%s:%s/%s?resource=%s", nmibase, nmiport, nmipath, resource)
 		req, err := http.NewRequest("GET", endpoint, nil)
 		if err != nil {
 			return nil, err
