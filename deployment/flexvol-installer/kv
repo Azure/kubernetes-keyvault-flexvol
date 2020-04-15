@@ -2,6 +2,7 @@
 
 DIR=$(dirname "$(readlink -f "$0")")
 JQ="/usr/bin/jq"
+PYTHON_JSON_PARSER="${DIR}/jq-replacement.py"
 LOG="/var/log/kv-driver.log"
 VER="0.0.16"
 KVFV="${DIR}/azurekeyvault-flexvolume"
@@ -37,8 +38,9 @@ ismounted() {
 
 mount() {
 	MNTPATH="$1"
-
-	CLIENTID="$(echo "$2"|"$JQ" -r '.["kubernetes.io/secret/clientid"] // empty' | base64 -d)"
+}
+jqparse() {
+    CLIENTID="$(echo "$2"|"$JQ" -r '.["kubernetes.io/secret/clientid"] // empty' | base64 -d)"
 	CLIENTSECRET="$(echo "$2"|"$JQ" -r '.["kubernetes.io/secret/clientsecret"] // empty' | tr -d '\n' | tr -d ' ' | base64 -d)"
 
 	PODNAMESPACE="$(echo "$2"|"$JQ" -r '.["kubernetes.io/pod.namespace"] // empty')"
@@ -67,6 +69,55 @@ mount() {
 		KEYVAULT_OBJECT_VERSIONS="$(echo "$2"|"$JQ" -r '.keyvaultobjectversion //empty')"
 
 	fi
+}
+
+pythonparse() {
+        EXAMPLE="$(echo "$2"|"$PYTHON_JSON_PARSER" 'tenantid')"
+        echo $EXAMPLE
+    CLIENTID="$(echo "$2"|"$PYTHON_JSON_PARSER" 'kubernetes.io/secret/clientid' | base64 -d)"
+	CLIENTSECRET="$(echo "$2"|"$PYTHON_JSON_PARSER" 'kubernetes.io/secret/clientsecret' | tr -d '\n' | tr -d ' ' | base64 -d)"
+
+	PODNAMESPACE="$(echo "$2"|"$PYTHON_JSON_PARSER" 'kubernetes.io/pod.namespace')"
+	PODNAME="$(echo "$2"|"$PYTHON_JSON_PARSER" 'kubernetes.io/pod.name')"
+
+	# Required
+	TENANT_ID="$(echo "$2"|"$PYTHON_JSON_PARSER" 'tenantid')"
+	KEYVAULT_NAME="$(echo "$2"|"$PYTHON_JSON_PARSER" 'keyvaultname')"
+	KEYVAULT_OBJECT_NAMES="$(echo "$2"|"$PYTHON_JSON_PARSER" 'keyvaultobjectnames')"
+	KEYVAULT_OBJECT_TYPES="$(echo "$2"|"$PYTHON_JSON_PARSER" 'keyvaultobjecttypes')"
+	
+	USE_POD_IDENTITY="$(echo "$2"|"$PYTHON_JSON_PARSER" 'usepodidentity')"
+	USE_VM_MANAGED_IDENTITY="$(echo "$2"|"$PYTHON_JSON_PARSER" 'usevmmanagedidentity')"
+	VM_MANAGED_IDENTITY_CLIENT_ID="$(echo "$2"|"$PYTHON_JSON_PARSER" 'vmmanagedidentityclientid')"
+
+	# Optional
+	CLOUD_NAME="$(echo "$2"|"$PYTHON_JSON_PARSER" 'cloudname')"
+	KEYVAULT_OBJECT_VERSIONS="$(echo "$2"|"$PYTHON_JSON_PARSER" 'keyvaultobjectversions')"
+	KEYVAULT_OBJECT_ALIASES="$(echo "$2"|"$PYTHON_JSON_PARSER" 'keyvaultobjectaliases')"
+	
+    # backward compatibility (should be deprecated!)
+	if [ -z "${KEYVAULT_OBJECT_NAMES}" ]; then
+		KEYVAULT_OBJECT_NAMES="$(echo "$2"|"$PYTHON_JSON_PARSER" 'keyvaultobjectname')"
+		KEYVAULT_OBJECT_TYPES="$(echo "$2"|"$PYTHON_JSON_PARSER" 'keyvaultobjecttype')"
+		KEYVAULT_OBJECT_VERSIONS="$(echo "$2"|"$PYTHON_JSON_PARSER" 'keyvaultobjectversion')"
+
+	fi
+}
+mount() {
+    MNTPATH="$1"
+
+    if JQEXISTS="$("$JQ" 2>&1)"; then
+            jqparse $*
+    else
+            if PYTHONEXISTS="$(python -c 'print(1)')"; then
+                    pythonparse $*
+            else
+                    log "{\"status\": \"Failure\", \"message\": \"could not parse json, node doesn't support jq nor python\"}"
+		            exit 1
+            fi
+    fi
+
+
 
 	if [ $(ismounted) -eq 1 ] ; then
 		log "{\"status\": \"Success\"}"
