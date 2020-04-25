@@ -233,8 +233,8 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
      name: <a-idname>
    spec:
      type: 0
-     ResourceID: /subscriptions/<subid>/resourcegroups/<resourcegroup>/providers/Microsoft.ManagedIdentity/userAssignedIdentities/<name>
-     ClientID: <clientId>
+     resourceID: /subscriptions/<subid>/resourcegroups/<resourcegroup>/providers/Microsoft.ManagedIdentity/userAssignedIdentities/<name>
+     clientID: <clientId>
    ```
 
    Replace the placeholders with your user identity values. Set `type: 0` for user-assigned MSI.
@@ -255,8 +255,8 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
     metadata:
       name: demo1-azure-identity-binding
     spec:
-      AzureIdentity: <a-idname>
-      Selector: <label value to match>
+      azureIdentity: <a-idname>
+      selector: <label value to match>
     ```
 
    Replace the placeholders with your values. Ensure that the `AzureIdentity` name matches the one in `aadpodidentity.yaml`.
@@ -271,7 +271,7 @@ Fill in the missing pieces in [this](https://github.com/Azure/kubernetes-keyvaul
 
     Your application manifest needs a couple of changes. Refer to the [nginx-flex-kv-podid] deployment as an example.
 
-    a. Include the `aadpodidbinding` label to match the `Selector` value from the previous step:
+    a. Include the `aadpodidbinding` label to match the `selector` value from the previous step:
 
     ```yaml
     metadata:
