@@ -1,6 +1,8 @@
 # Key Vault FlexVolume [DEPRECATED]
 
-**WARNING** :warning: This solution has been deprecated. Please use [Azure Key Vault Provider for Secret Store CSI Driver](https://github.com/Azure/secrets-store-csi-driver-provider-azure)
+**WARNING** :warning: This solution has been deprecated. Continue to use this for kubernetes version 1.15. For 1.16+, please use [Azure Key Vault Provider for Secret Store CSI Driver](https://github.com/Azure/secrets-store-csi-driver-provider-azure)
+
+**This solution will be supported until 1.15 is out of support in AKS**
 
 
 Seamlessly integrate your key management systems with Kubernetes.
