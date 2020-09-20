@@ -71,8 +71,7 @@ jqparse() {
 }
 
 pythonparse() {
-        EXAMPLE="$(echo "$2"|"$PYTHON_JSON_PARSER" 'tenantid')"
-        echo $EXAMPLE
+    EXAMPLE="$(echo "$2"|"$PYTHON_JSON_PARSER" 'tenantid')"
     CLIENTID="$(echo "$2"|"$PYTHON_JSON_PARSER" 'kubernetes.io/secret/clientid' | base64 -d)"
 	CLIENTSECRET="$(echo "$2"|"$PYTHON_JSON_PARSER" 'kubernetes.io/secret/clientsecret' | tr -d '\n' | tr -d ' ' | base64 -d)"
 
