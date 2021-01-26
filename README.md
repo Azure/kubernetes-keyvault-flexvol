@@ -2,7 +2,7 @@
 
 **WARNING** :warning: This solution has been deprecated. Continue to use this for kubernetes version 1.15. For 1.16+, please use [Azure Key Vault Provider for Secret Store CSI Driver](https://github.com/Azure/secrets-store-csi-driver-provider-azure)
 
-**This solution is not longer supported as 1.15 is out of support in AKS**
+**This solution is no longer supported as 1.15 is out of support in AKS**
 
 
 Seamlessly integrate your key management systems with Kubernetes.
